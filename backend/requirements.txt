@@ -1,0 +1,13 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-dotenv==1.0.1
+supabase==2.7.2
+google-generativeai>=0.7.2
+pdfplumber>=0.11.4
+python-multipart>=0.0.9
+Levenshtein>=0.25.1
+pydantic>=2.9.1
+clerk-backend-api>=7.0.0
+svix>=1.50.0
+pyjwt>=2.8.0
+cryptography>=42.0.0
