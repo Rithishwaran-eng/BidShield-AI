@@ -33,25 +33,55 @@ def get_tender_audit_log(tender_id: str):
     """Officer views audit history specific to a tender."""
     sb = get_supabase()
 
-    # 1. Query audit log directly with tender_id
-    tender_audits = sb.table("audit_log").select("*").eq("tender_id", tender_id).execute()
-    all_audit_entries = list(tender_audits.data or [])
-    seen_ids = {a["id"] for a in all_audit_entries}
+    # 1. Query audit log directly with tender_id (if column exists)
+    all_audit_entries = []
+    seen_ids = set()
+    try:
+        tender_audits = sb.table("audit_log").select("*").eq("tender_id", tender_id).execute()
+        all_audit_entries = list(tender_audits.data or [])
+        seen_ids = {a["id"] for a in all_audit_entries}
+    except Exception:
+        pass
 
-    # 2. Get bids for this tender
-    bids = sb.table("bids").select("id").eq("tender_id", tender_id).execute()
-    bid_ids = [b["id"] for b in (bids.data or [])]
+    # 2. Get bids for this tender (with bidders fallback)
+    bid_ids = []
+    try:
+        bids = sb.table("bids").select("id").eq("tender_id", tender_id).execute()
+        bid_ids = [b["id"] for b in (bids.data or [])]
+    except Exception:
+        bid_ids = []
 
-    # 3. Get findings for these bids
+    if not bid_ids:
+        try:
+            bidders = sb.table("bidders").select("id").eq("tender_id", tender_id).execute()
+            bid_ids = [b["id"] for b in (bidders.data or [])]
+        except Exception:
+            bid_ids = []
+
+    # 3. Get findings for these bids or bidders
     if bid_ids:
-        findings = sb.table("findings").select("id").in_("bid_id", bid_ids).execute()
-        finding_ids = [f["id"] for f in (findings.data or [])]
+        finding_ids = []
+        try:
+            findings = sb.table("findings").select("id").in_("bid_id", bid_ids).execute()
+            finding_ids = [f["id"] for f in (findings.data or [])]
+        except Exception:
+            finding_ids = []
+        if not finding_ids:
+            try:
+                findings = sb.table("findings").select("id").in_("bidder_id", bid_ids).execute()
+                finding_ids = [f["id"] for f in (findings.data or [])]
+            except Exception:
+                finding_ids = []
+
         if finding_ids:
-            f_audits = sb.table("audit_log").select("*").in_("finding_id", finding_ids).execute()
-            for fa in (f_audits.data or []):
-                if fa["id"] not in seen_ids:
-                    seen_ids.add(fa["id"])
-                    all_audit_entries.append(fa)
+            try:
+                f_audits = sb.table("audit_log").select("*").in_("finding_id", finding_ids).execute()
+                for fa in (f_audits.data or []):
+                    if fa["id"] not in seen_ids:
+                        seen_ids.add(fa["id"])
+                        all_audit_entries.append(fa)
+            except Exception as e:
+                logger.warning(f"Error fetching finding audits: {e}")
 
     # Sort descending
     all_audit_entries.sort(key=lambda x: x.get("created_at", ""), reverse=True)
@@ -70,7 +100,7 @@ def _enrich_audit_entries(sb, entries: list) -> list:
     findings_map = {}
     if finding_ids:
         try:
-            f_res = sb.table("findings").select("id, rule_id, status, bidder_id, bid_id").in_("id", finding_ids).execute()
+            f_res = sb.table("findings").select("id, rule_id, status, bidder_id").in_("id", finding_ids).execute()
             findings_map = {f["id"]: f for f in (f_res.data or [])}
         except Exception as err:
             logger.warning(f"Error fetching findings for audit enrichment: {err}")

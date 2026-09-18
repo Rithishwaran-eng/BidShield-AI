@@ -27,7 +27,7 @@ def get_finding(finding_id: str):
     # Get bidder details
     bidder_name = None
     if bidder_id:
-        bidder = sb.table("bidders").select("name, legal_name").eq("id", bidder_id).execute()
+        bidder = sb.table("bidders").select("name").eq("id", bidder_id).execute()
         if bidder.data:
             bidder_name = bidder.data[0]["name"]
 

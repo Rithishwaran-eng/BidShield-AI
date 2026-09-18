@@ -49,11 +49,13 @@ def get_dashboard(tender_id: str, bidder_filter: Optional[str] = None, status_fi
             "findings": [],
         }
 
-    # 4. Batch query bids, documents, and findings in parallel/bulk (SEC-12 fix)
-    bids_res = sb.table("bids").select("*").eq("tender_id", tender_id).execute()
-    bids_by_bidder = {b["bidder_id"]: b for b in (bids_res.data or [])}
+    try:
+        bids_res = sb.table("bids").select("*").eq("tender_id", tender_id).execute()
+        bids_by_bidder = {b["bidder_id"]: b for b in (bids_res.data or [])}
+    except Exception:
+        bids_by_bidder = {}
 
-    docs_res = sb.table("documents").select("id, bidder_id, bid_id").in_("bidder_id", bidder_ids).execute()
+    docs_res = sb.table("documents").select("id, bidder_id").in_("bidder_id", bidder_ids).execute()
     docs_by_bidder = defaultdict(list)
     for d in (docs_res.data or []):
         docs_by_bidder[d.get("bidder_id")].append(d)
