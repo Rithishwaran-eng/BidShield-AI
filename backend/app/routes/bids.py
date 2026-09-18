@@ -374,19 +374,29 @@ def list_bidder_submissions(current_user: dict = Depends(get_current_user)):
     if not bids:
         # Fallback to bidders table for legacy/demo data
         try:
-            b_res = sb.table("bidders").select("*, tenders(title, status)").order("created_at", desc=True).execute()
-            bids = [{
-                "id": b["id"],
-                "tender_id": b.get("tender_id"),
-                "bidder_id": b["id"],
-                "status": "verified",
-                "submitted_at": b.get("created_at"),
-                "tenders": {
-                    "title": (b.get("tenders") or {}).get("title", "Tender Opportunity"),
-                    "organization": "Ministry of Electronics and Information Technology (MeitY)",
-                    "status": (b.get("tenders") or {}).get("status", "open"),
-                },
-            } for b in (b_res.data or [])]
+            b_res = sb.table("bidders").select("*, tenders(title, status, uploaded_text)").order("created_at", desc=True).execute()
+            bids = []
+            for b in (b_res.data or []):
+                t_obj = b.get("tenders") or {}
+                t_text = t_obj.get("uploaded_text") or ""
+                org = "Ministry of Commerce & Industry"
+                if t_text:
+                    import re
+                    m = re.search(r"(?:Ministry|Department|Procuring Entity):\s*([^\n\r]+)", t_text)
+                    if m:
+                        org = m.group(1).strip()
+                bids.append({
+                    "id": b["id"],
+                    "tender_id": b.get("tender_id"),
+                    "bidder_id": b["id"],
+                    "status": "verified",
+                    "submitted_at": b.get("created_at"),
+                    "tenders": {
+                        "title": t_obj.get("title", "Tender Opportunity"),
+                        "organization": org,
+                        "status": t_obj.get("status", "open"),
+                    },
+                })
         except Exception:
             bids = []
 

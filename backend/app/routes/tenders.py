@@ -165,6 +165,28 @@ MANDATORY CRITERIA:
     return result.data[0]
 
 
+def _enrich_tender(t: dict) -> dict:
+    if not t:
+        return t
+    text = t.get("uploaded_text") or ""
+    if not t.get("organization") and text:
+        import re
+        m = re.search(r"(?:Ministry|Department|Procuring Entity):\s*([^\n\r]+)", text)
+        if m:
+            t["organization"] = m.group(1).strip()
+    if not t.get("category") and text:
+        import re
+        m = re.search(r"(?:Category|Subject|Domain):\s*([^\n\r]+)", text)
+        if m:
+            t["category"] = m.group(1).strip()
+    if not t.get("description") and text:
+        import re
+        m = re.search(r"(?:Description|Scope of Work):\s*([^\n\r]+)", text)
+        if m:
+            t["description"] = m.group(1).strip()
+    return t
+
+
 @router.get("", response_model=list[TenderResponse])
 def list_tenders(
     status: Optional[str] = None,
@@ -178,13 +200,19 @@ def list_tenders(
     if not is_officer:
         # Public & bidders are restricted strictly to published active/completed tenders (SEC-06)
         query = query.in_("status", list(PUBLIC_TENDER_STATUSES))
-        if status and status in PUBLIC_TENDER_STATUSES:
-            query = query.eq("status", status)
+        if status:
+            if status == "open":
+                query = query.in_("status", ["open", "active"])
+            elif status in PUBLIC_TENDER_STATUSES:
+                query = query.eq("status", status)
     elif status:
-        query = query.eq("status", status)
+        if status == "open":
+            query = query.in_("status", ["open", "active"])
+        else:
+            query = query.eq("status", status)
 
     result = query.order("created_at", desc=True).execute()
-    return result.data
+    return [_enrich_tender(t) for t in (result.data or [])]
 
 
 @router.get("/{tender_id}", response_model=TenderResponse)
@@ -198,7 +226,7 @@ def get_tender(
     if not result.data:
         raise HTTPException(status_code=404, detail="Tender not found")
 
-    tender = result.data[0]
+    tender = _enrich_tender(result.data[0])
     tender_status = tender.get("status", "draft")
     is_officer = current_user and current_user.get("role") == "procurement_officer"
 

@@ -6,44 +6,19 @@ import Link from "next/link";
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import PageHeader from "@/app/components/PageHeader";
-import { createTender, extractRules, uploadTenderPdf, importGemTender } from "@/app/lib/api";
-
-const SAMPLE_CPCL_TEXT = `GOVERNMENT E-MARKETPLACE (GeM) - BID SPECIFICATION
-Bid Number: GEM/2026/B/8912400
-Procuring Entity: Chennai Petroleum Corporation Limited (CPCL)
-Subject: Supply of Industrial Mechanical Valves, High-Pressure Pumps & Equipment
-
-ELIGIBILITY REQUIREMENTS:
-1. FINANCIAL REQUIREMENT (TURNOVER_01):
-The bidder must have an average annual turnover of at least INR 10.00 Crore across the last three audited financial years (FY 2022-23, FY 2023-24, FY 2024-25). Audited balance sheets and turnover certificates must be submitted.
-
-2. STATUTORY GST REGISTRATION (GST_REG_01):
-The bidder must possess a valid GST Registration Certificate with active filing status.
-
-3. PAN VERIFICATION (PAN_01):
-The bidder must provide a valid Permanent Account Number (PAN) matching the legal entity name.
-
-4. MSME / UDYAM PREFERENCE (UDYAM_01):
-If claiming MSME benefits, a valid Udyam Registration Certificate must be provided.
-
-5. PAST EXPERIENCE (EXPERIENCE_01):
-The bidder must have executed at least 3 similar mechanical supply orders (minimum INR 2.00 Crore each) for government PSUs within the last 5 years.
-
-6. EARNEST MONEY DEPOSIT (EMD_01):
-The bidder must submit an Earnest Money Deposit (EMD) of INR 5,00,000 in the form of a Bank Guarantee or Demand Draft.`;
+import { createTender, extractRules, uploadTenderPdf } from "@/app/lib/api";
 
 export default function OfficerNewTenderPage() {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
-  const [organization, setOrganization] = useState("Chennai Petroleum Corporation Limited (CPCL)");
-  const [category, setCategory] = useState("Industrial Mechanical Equipment");
+  const [organization, setOrganization] = useState("");
+  const [category, setCategory] = useState("");
   const [deadline, setDeadline] = useState("");
   const [tenderText, setTenderText] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [importingGem, setImportingGem] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [error, setError] = useState("");
@@ -78,32 +53,6 @@ export default function OfficerNewTenderPage() {
     }
   };
 
-  const handleImportGem = async () => {
-    setImportingGem(true);
-    setError("");
-    setStatusMessage("Importing tender specification from simulated GeM adapter...");
-
-    try {
-      const tender = await importGemTender("CPCL_MECH_01");
-      setStatusMessage("Extracting structured compliance rules using Gemini AI...");
-      await extractRules(tender.id);
-      router.push(`/officer/tenders/${tender.id}/rules`);
-    } catch (err: any) {
-      setError(err.message || "Failed to import GeM tender.");
-      setImportingGem(false);
-      setStatusMessage("");
-    }
-  };
-
-  const handleLoadSample = () => {
-    setTitle("CPCL Mechanical Procurement - GeM Bid No. GEM/2026/B/8912400");
-    setOrganization("Chennai Petroleum Corporation Limited (CPCL)");
-    setCategory("Industrial Mechanical Equipment");
-    setDeadline("2026-10-30");
-    setTenderText(SAMPLE_CPCL_TEXT);
-    setError("");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !tenderText.trim()) {
@@ -118,8 +67,8 @@ export default function OfficerNewTenderPage() {
     try {
       const tender = await createTender({
         title: title.trim(),
-        organization: organization.trim(),
-        category: category.trim(),
+        organization: organization.trim() || "Ministry of Commerce & Industry",
+        category: category.trim() || "Goods & Equipment",
         deadline: deadline || undefined,
         uploaded_text: tenderText.trim(),
       });
@@ -163,40 +112,6 @@ export default function OfficerNewTenderPage() {
               <span style={{ fontSize: "13.5px", fontWeight: 600 }}>{statusMessage}</span>
             </div>
           )}
-
-          {/* Quick Import Card */}
-          <div className="card mb-6" style={{ backgroundColor: "#F8FAFC", border: "1px solid var(--color-border)", padding: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-              <div>
-                <h3 style={{ fontSize: "14.5px", color: "var(--color-navy-900)", margin: "0 0 2px 0" }}>
-                  ⚡ Rapid Prototype Import Options
-                </h3>
-                <p style={{ fontSize: "12.5px", color: "var(--color-text-secondary)", margin: 0 }}>
-                  Import pre-configured GeM procurement specifications with verified eligibility clauses.
-                </p>
-              </div>
-
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={handleLoadSample}
-                  style={{ fontSize: "12px" }}
-                >
-                  📋 Populate CPCL Sample Text
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  onClick={handleImportGem}
-                  disabled={importingGem || loading}
-                  style={{ fontSize: "12px", backgroundColor: "var(--color-navy-900)" }}
-                >
-                  {importingGem ? "Importing..." : "🚀 Direct GeM Import & Extract"}
-                </button>
-              </div>
-            </div>
-          </div>
 
           {/* Tender Creation Form */}
           <div className="card" style={{ padding: "32px", borderTop: "4px solid var(--color-navy-700)" }}>
