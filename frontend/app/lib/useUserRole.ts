@@ -4,7 +4,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { setAuthToken, setTokenGetter } from "./api";
 
-export type UserRole = "procurement_officer" | "auditor" | "administrator";
+export type UserRole = "procurement_officer" | "bidder";
 
 export function useUserRole() {
   const { user, isLoaded: userLoaded, isSignedIn } = useUser();
@@ -29,8 +29,7 @@ export function useUserRole() {
       role: null as UserRole | null,
       roleLabel: "Loading...",
       isOfficer: false,
-      isAuditor: false,
-      isAdmin: false,
+      isBidder: false,
       canWrite: false,
     };
   }
@@ -43,41 +42,34 @@ export function useUserRole() {
       role: null as UserRole | null,
       roleLabel: "Signed Out",
       isOfficer: false,
-      isAuditor: false,
-      isAdmin: false,
+      isBidder: false,
       canWrite: false,
     };
   }
 
-  // Read verified role from user publicMetadata (or session claims)
-  const roleRaw = (user.publicMetadata?.role as string) || "procurement_officer";
-  const role: UserRole =
-    roleRaw === "administrator" || roleRaw === "auditor" || roleRaw === "procurement_officer"
-      ? roleRaw
-      : "auditor";
+  // Read verified role from user publicMetadata
+  const roleRaw = (user.publicMetadata?.role as string) || "bidder";
+  const role: UserRole = roleRaw === "procurement_officer" ? "procurement_officer" : "bidder";
 
-  const isOfficer = role === "procurement_officer" || role === "administrator";
-  const isAuditor = role === "auditor";
-  const isAdmin = role === "administrator";
+  const isOfficer = role === "procurement_officer";
+  const isBidder = role === "bidder";
   const canWrite = isOfficer;
 
   const roleLabels: Record<UserRole, string> = {
     procurement_officer: "Procurement Officer",
-    auditor: "Auditor",
-    administrator: "Administrator",
+    bidder: "Bidder / Supplier",
   };
 
   return {
     isLoaded: true,
     isSignedIn: true,
     user,
-    name: (user.fullName || user.firstName || user.username || "Officer").toUpperCase(),
+    name: (user.fullName || user.firstName || user.username || (isOfficer ? "Procurement Officer" : "Bidder")).toUpperCase(),
     email: user.primaryEmailAddress?.emailAddress || "",
     role,
-    roleLabel: roleLabels[role] || "Procurement Officer",
+    roleLabel: roleLabels[role] || "Bidder / Supplier",
     isOfficer,
-    isAuditor,
-    isAdmin,
+    isBidder,
     canWrite,
   };
 }

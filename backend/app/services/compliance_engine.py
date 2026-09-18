@@ -10,6 +10,7 @@ Every Finding carries an evidence array and a plain-language explanation
 built from templates. No LLM calls.
 """
 
+from typing import Optional
 from app.services.matching import cross_document_consistency_check
 
 # Confidence threshold: below this, extraction is treated as pending
@@ -34,6 +35,8 @@ DOCUMENT_TYPE_MAP = {
     "Bank Guarantee": "EMD",
     "Bid Form": "BID_FORM",
     "Company Registration": "REGISTRATION",
+    "OEM Authorization": "OEM_AUTH",
+    "Declaration": "DECLARATION",
 }
 
 
@@ -51,7 +54,7 @@ def evaluate_rule(rule: dict, documents: list[dict]) -> dict:
     Args:
         rule: dict with keys: id, rule_id, requirement, mandatory,
               evidence_required, threshold
-        documents: list of document dicts for the bidder
+        documents: list of document dicts for the bidder/bid
 
     Returns:
         dict with keys: status, evidence, explanation
@@ -170,18 +173,19 @@ def evaluate_rule(rule: dict, documents: list[dict]) -> dict:
     }
 
 
-def run_compliance_check(rules: list[dict], documents: list[dict], bidder_id: str) -> list[dict]:
-    """Run the full compliance check for a bidder.
+def run_compliance_check(rules: list[dict], documents: list[dict], bidder_id: str, bid_id: Optional[str] = None) -> list[dict]:
+    """Run the full compliance check for a bidder / bid.
 
     Evaluates every rule and runs cross-document consistency checks.
 
     Args:
         rules: list of rule dicts for the tender
-        documents: list of document dicts for the bidder
+        documents: list of document dicts for the bidder/bid
         bidder_id: the bidder's UUID
+        bid_id: optional bid UUID
 
     Returns:
-        list of finding dicts, each with: bidder_id, rule_id, status,
+        list of finding dicts, each with: bidder_id, bid_id, rule_id, status,
         evidence, explanation
     """
     findings = []
@@ -189,23 +193,29 @@ def run_compliance_check(rules: list[dict], documents: list[dict], bidder_id: st
     # Evaluate each rule
     for rule in rules:
         result = evaluate_rule(rule, documents)
-        findings.append({
+        item = {
             "bidder_id": bidder_id,
             "rule_id": rule["id"],
             "status": result["status"],
             "evidence": result["evidence"],
             "explanation": result["explanation"],
-        })
+        }
+        if bid_id:
+            item["bid_id"] = bid_id
+        findings.append(item)
 
     # Cross-document consistency check
     consistency_results = cross_document_consistency_check(documents)
     for result in consistency_results:
-        findings.append({
+        item = {
             "bidder_id": bidder_id,
             "rule_id": None,
             "status": result["status"],
             "evidence": result["evidence"],
             "explanation": result["explanation"],
-        })
+        }
+        if bid_id:
+            item["bid_id"] = bid_id
+        findings.append(item)
 
     return findings

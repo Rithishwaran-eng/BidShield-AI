@@ -1,10 +1,29 @@
-import { SignIn } from "@clerk/nextjs";
+"use client";
+
+import { useEffect } from "react";
+import { SignIn, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function SignInPage() {
+  const { isSignedIn, user, isLoaded } = useUser();
+  const router = useRouter();
+
+  // Role-aware redirect if already signed in
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      const role = (user.publicMetadata?.role as string) || "bidder";
+      if (role === "procurement_officer") {
+        router.push("/officer");
+      } else {
+        router.push("/bidder");
+      }
+    }
+  }, [isLoaded, isSignedIn, user, router]);
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)" }}>
-      {/* Government Topbar */}
+      {/* Topbar */}
       <div className="gov-topbar">
         <div className="gov-topbar-inner">
           <div className="gov-lineage">
@@ -45,12 +64,12 @@ export default function SignInPage() {
                 BidShield AI
               </Link>
               <span style={{ fontSize: "11px", color: "#cbd5e1" }}>
-                National Public Procurement Integrity Platform
+                National Public Procurement Gateway
               </span>
             </div>
           </div>
           <Link href="/" className="btn btn-secondary btn-sm" style={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.3)" }}>
-            &larr; Back to Portal
+            &larr; Back to Home
           </Link>
         </div>
       </header>
@@ -60,15 +79,15 @@ export default function SignInPage() {
         <span></span><span></span><span></span>
       </div>
 
-      {/* Main Sign-In Card Container */}
+      {/* Main Container */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
         <div style={{ width: "100%", maxWidth: "440px", marginBottom: "18px", textAlign: "center" }}>
-          <span className="portal-section-kicker">GeM Procurement Gateway</span>
+          <span className="portal-section-kicker">Unified Authentication Gateway</span>
           <h1 style={{ fontFamily: "var(--font-merriweather), Georgia, serif", fontSize: "1.6rem", color: "var(--color-navy-900)", margin: "4px 0 8px 0" }}>
-            Officer Sign In
+            Sign In to BidShield AI
           </h1>
           <p style={{ fontSize: "13px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Enter your authorized procurement credentials to access BidShield AI.
+            Access the Bidder Submission Portal or Procurement Officer Evaluation Dashboard.
           </p>
         </div>
 
@@ -134,18 +153,17 @@ export default function SignInPage() {
               borderRadius: "4px",
               fontFamily: "var(--font-inter), sans-serif",
             },
-
           }}
           routing="path"
           path="/sign-in"
           signUpUrl="/sign-up"
-          fallbackRedirectUrl="/tenders"
+          fallbackRedirectUrl="/bidder"
         />
 
         <div style={{ marginTop: "24px", fontSize: "12.5px", color: "var(--color-text-secondary)" }}>
-          New evaluation officer?{" "}
+          New bidder or supplier?{" "}
           <Link href="/sign-up" style={{ color: "var(--color-navy-700)", fontWeight: 600, textDecoration: "underline" }}>
-            Request account & select role &rarr;
+            Register vendor profile &rarr;
           </Link>
         </div>
       </main>

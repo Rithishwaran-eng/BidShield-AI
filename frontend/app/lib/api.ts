@@ -26,7 +26,7 @@ async function request<T>(
     ...(options.headers as Record<string, string>),
   };
 
-  // Always acquire fresh token from Clerk if getter available
+  // Acquire fresh token if getter available
   let token = currentAuthToken;
   if (tokenGetter) {
     try {
@@ -49,7 +49,7 @@ async function request<T>(
     headers,
   });
 
-  // If token expired, attempt one retry with a forced fresh token
+  // Retry on 401
   if (res.status === 401 && !isRetry && tokenGetter) {
     try {
       const refreshed = await tokenGetter();
@@ -71,20 +71,57 @@ async function request<T>(
 }
 
 
-// --- Tenders ---
+// ==========================================
+// TENDERS API
+// ==========================================
 
 export async function createTender(data: {
   title: string;
+  description?: string;
+  organization?: string;
+  category?: string;
+  deadline?: string;
   uploaded_text?: string;
 }) {
-  return request("/tenders", {
+  return request<any>("/tenders", {
     method: "POST",
     body: JSON.stringify(data),
   });
 }
 
-export async function listTenders() {
-  return request<any[]>("/tenders");
+export async function uploadTenderPdf(file: File) {
+  const url = `${API_URL}/tenders/upload-pdf`;
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const headers: Record<string, string> = {};
+  if (currentAuthToken) {
+    headers["Authorization"] = `Bearer ${currentAuthToken}`;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(error.detail || `Upload error: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function importGemTender(sampleId: string = "CPCL_MECH_01") {
+  return request<any>(`/tenders/import-gem?sample_id=${encodeURIComponent(sampleId)}`, {
+    method: "POST",
+  });
+}
+
+export async function listTenders(status?: string) {
+  const path = status ? `/tenders?status=${encodeURIComponent(status)}` : "/tenders";
+  return request<any[]>(path);
 }
 
 export async function getTender(id: string) {
@@ -104,7 +141,7 @@ export async function getRules(tenderId: string) {
 export async function updateRules(
   tenderId: string,
   rules: any[],
-  approve: boolean
+  approve: boolean = false
 ) {
   return request<any>(`/tenders/${tenderId}/rules`, {
     method: "PATCH",
@@ -112,20 +149,111 @@ export async function updateRules(
   });
 }
 
-// --- Bidders ---
-
-export async function createBidder(tenderId: string, name: string) {
-  return request<any>(`/tenders/${tenderId}/bidders`, {
+export async function publishTender(tenderId: string) {
+  return request<any>(`/tenders/${tenderId}/publish`, {
     method: "POST",
-    body: JSON.stringify({ name }),
   });
 }
 
-export async function listBidders(tenderId: string) {
-  return request<any[]>(`/tenders/${tenderId}/bidders`);
+export async function updateTenderStatus(tenderId: string, status: string) {
+  return request<any>(`/tenders/${tenderId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 }
 
-// --- Documents ---
+
+// ==========================================
+// BIDDER SUBMISSIONS & BIDS API
+// ==========================================
+
+export async function submitBidApplication(
+  tenderId: string,
+  data: {
+    company_name: string;
+    legal_name?: string;
+    pan?: string;
+    gstin?: string;
+    contact_email: string;
+    contact_phone?: string;
+  },
+  documents: { file: File; documentType: string }[]
+) {
+  const url = `${API_URL}/tenders/${tenderId}/apply`;
+  const formData = new FormData();
+  formData.append("company_name", data.company_name);
+  if (data.legal_name) formData.append("legal_name", data.legal_name);
+  if (data.pan) formData.append("pan", data.pan);
+  if (data.gstin) formData.append("gstin", data.gstin);
+  formData.append("contact_email", data.contact_email);
+  if (data.contact_phone) formData.append("contact_phone", data.contact_phone);
+
+  documents.forEach((d) => {
+    formData.append("files", d.file);
+    formData.append("document_types", d.documentType);
+  });
+
+  const headers: Record<string, string> = {};
+  if (currentAuthToken) {
+    headers["Authorization"] = `Bearer ${currentAuthToken}`;
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(error.detail || `Bid submission failed: ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export async function getBidderSubmissions() {
+  return request<any[]>("/bidder/submissions");
+}
+
+export async function getBidderSubmissionDetail(bidId: string) {
+  return request<any>(`/bidder/submissions/${bidId}`);
+}
+
+export async function listSubmittedBids(tenderId: string) {
+  return request<any[]>(`/tenders/${tenderId}/bids`);
+}
+
+export async function getBidDetail(bidId: string) {
+  return request<any>(`/bids/${bidId}`);
+}
+
+export async function reverifyBid(bidId: string) {
+  return request<any>(`/bids/${bidId}/reverify`, {
+    method: "POST",
+  });
+}
+
+export async function setBidDecision(
+  bidId: string,
+  decision: "qualified" | "not_qualified",
+  officerName: string,
+  note: string
+) {
+  return request<any>(`/bids/${bidId}/decision`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      decision,
+      officer_name: officerName,
+      note,
+    }),
+  });
+}
+
+
+// ==========================================
+// DOCUMENTS API
+// ==========================================
 
 export async function uploadDocument(
   bidderId: string,
@@ -160,31 +288,10 @@ export async function listDocuments(bidderId: string) {
   return request<any[]>(`/bidders/${bidderId}/documents`);
 }
 
-// --- Verification ---
 
-export async function runVerification(bidderId: string) {
-  return request<any>(`/bidders/${bidderId}/verify`, {
-    method: "POST",
-  });
-}
-
-// --- Dashboard ---
-
-export async function getDashboard(
-  tenderId: string,
-  filters?: { bidder?: string; status?: string }
-) {
-  let path = `/tenders/${tenderId}/dashboard`;
-  const params = new URLSearchParams();
-  if (filters?.bidder) params.set("bidder_filter", filters.bidder);
-  if (filters?.status) params.set("status_filter", filters.status);
-  const qs = params.toString();
-  if (qs) path += `?${qs}`;
-
-  return request<any>(path);
-}
-
-// --- Findings ---
+// ==========================================
+// FINDINGS & EVIDENCE API
+// ==========================================
 
 export async function getFinding(findingId: string) {
   return request<any>(`/findings/${findingId}`);
@@ -212,50 +319,32 @@ export async function reopenFinding(findingId: string) {
   });
 }
 
-// --- Audit ---
 
-export async function getAuditLog(tenderId: string) {
-  return request<any[]>(`/tenders/${tenderId}/audit`);
+// ==========================================
+// DASHBOARD & AUDIT API
+// ==========================================
+
+export async function getDashboard(
+  tenderId: string,
+  filters?: { bidder?: string; status?: string }
+) {
+  let path = `/tenders/${tenderId}/dashboard`;
+  const params = new URLSearchParams();
+  if (filters?.bidder) params.set("bidder_filter", filters.bidder);
+  if (filters?.status) params.set("status_filter", filters.status);
+  const qs = params.toString();
+  if (qs) path += `?${qs}`;
+
+  return request<any>(path);
 }
 
-// --- User Management (Admin Only) ---
-
-export interface UserAccount {
-  id: string;
-  name: string;
-  email: string;
-  role: "procurement_officer" | "auditor" | "administrator";
-  created_at: string;
-  updated_at: string;
+export async function getAuditLog(tenderId?: string) {
+  if (tenderId) {
+    return request<any[]>(`/tenders/${tenderId}/audit`);
+  }
+  return request<any[]>("/officer/audit");
 }
 
-export async function listUsers(): Promise<UserAccount[]> {
-  return request<UserAccount[]>("/users");
+export async function getGlobalAuditLog() {
+  return request<any[]>("/officer/audit");
 }
-
-export async function updateUserRole(userId: string, role: string) {
-  return request<any>(`/users/${userId}/role`, {
-    method: "PATCH",
-    body: JSON.stringify({ role }),
-  });
-}
-
-export async function createUser(data: {
-  name: string;
-  email: string;
-  password: string;
-  role: string;
-}) {
-  return request<any>("/users", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteUser(userId: string) {
-  return request<any>(`/users/${userId}`, {
-    method: "DELETE",
-  });
-}
-
-

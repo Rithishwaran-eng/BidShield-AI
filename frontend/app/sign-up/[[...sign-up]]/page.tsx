@@ -5,7 +5,6 @@ import { useSignUp } from "@clerk/nextjs/legacy";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-
 export default function SignUpPage() {
   const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
@@ -13,8 +12,8 @@ export default function SignUpPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [password, setPassword] = useState("");
-  const [requestedRole, setRequestedRole] = useState<"procurement_officer" | "auditor">("procurement_officer");
 
   const [pendingVerification, setPendingVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
@@ -28,14 +27,15 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      // Create sign up with chosen role in unsafeMetadata
+      // Self-registrations are strictly 'bidder' role
       await signUp.create({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         emailAddress: email.trim(),
         password,
         unsafeMetadata: {
-          requestedRole,
+          requestedRole: "bidder",
+          companyName: companyName.trim(),
         },
       });
 
@@ -63,7 +63,7 @@ export default function SignUpPage() {
 
       if (completeSignUp.status === "complete") {
         await setActive({ session: completeSignUp.createdSessionId });
-        router.push("/tenders");
+        router.push("/bidder");
       } else {
         setError(`Sign up status: ${completeSignUp.status}. Verification not complete.`);
       }
@@ -77,7 +77,7 @@ export default function SignUpPage() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "var(--color-bg)" }}>
-      {/* Government Topbar */}
+      {/* Topbar */}
       <div className="gov-topbar">
         <div className="gov-topbar-inner">
           <div className="gov-lineage">
@@ -118,7 +118,7 @@ export default function SignUpPage() {
                 BidShield AI
               </Link>
               <span style={{ fontSize: "11px", color: "#cbd5e1" }}>
-                National Public Procurement Integrity Platform
+                National Public Procurement Bidder Registration
               </span>
             </div>
           </div>
@@ -135,17 +135,17 @@ export default function SignUpPage() {
 
       {/* Main Container */}
       <main style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 16px" }}>
-        <div style={{ width: "100%", maxWidth: "460px", marginBottom: "18px", textAlign: "center" }}>
-          <span className="portal-section-kicker">Account Onboarding</span>
+        <div style={{ width: "100%", maxWidth: "480px", marginBottom: "18px", textAlign: "center" }}>
+          <span className="portal-section-kicker">Bidder & Vendor Onboarding</span>
           <h1 style={{ fontFamily: "var(--font-merriweather), Georgia, serif", fontSize: "1.6rem", color: "var(--color-navy-900)", margin: "4px 0 8px 0" }}>
-            Create Officer Account
+            Register Bidder Account
           </h1>
           <p style={{ fontSize: "13px", color: "var(--color-text-secondary)", margin: 0 }}>
-            Register your official credentials and select your procurement verification role.
+            Create an authorized vendor account to discover open tenders and submit compliance documentation.
           </p>
         </div>
 
-        <div className="card" style={{ width: "100%", maxWidth: "460px", padding: "28px" }}>
+        <div className="card" style={{ width: "100%", maxWidth: "480px", padding: "28px" }}>
           {error && (
             <div className="form-error mb-4" role="alert">
               {error}
@@ -154,10 +154,25 @@ export default function SignUpPage() {
 
           {!pendingVerification ? (
             <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="company-name" className="form-label">
+                  Company / Organization Name <span className="form-required">*</span>
+                </label>
+                <input
+                  id="company-name"
+                  type="text"
+                  className="form-input"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                  placeholder="e.g. Reliable Systems Private Limited"
+                />
+              </div>
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <div className="form-group">
                   <label htmlFor="first-name" className="form-label">
-                    First Name <span className="form-required">*</span>
+                    Authorized Rep First Name <span className="form-required">*</span>
                   </label>
                   <input
                     id="first-name"
@@ -187,7 +202,7 @@ export default function SignUpPage() {
 
               <div className="form-group">
                 <label htmlFor="email" className="form-label">
-                  Official Email Address <span className="form-required">*</span>
+                  Official Business Email <span className="form-required">*</span>
                 </label>
                 <input
                   id="email"
@@ -196,7 +211,7 @@ export default function SignUpPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  placeholder="officer@nic.in or name@cpse.gov.in"
+                  placeholder="bids@company.com"
                 />
               </div>
 
@@ -216,46 +231,26 @@ export default function SignUpPage() {
                 />
               </div>
 
-              {/* Role Selector: Strictly Procurement Officer or Auditor */}
-              <div className="form-group">
-                <label htmlFor="role" className="form-label">
-                  Assigned Platform Role <span className="form-required">*</span>
-                </label>
-                <select
-                  id="role"
-                  className="form-select"
-                  value={requestedRole}
-                  onChange={(e) => setRequestedRole(e.target.value as "procurement_officer" | "auditor")}
-                  required
-                >
-                  <option value="procurement_officer">
-                    Procurement Officer (Full Evaluation & Review Privileges)
-                  </option>
-                  <option value="auditor">
-                    Auditor (Read-Only Inspection & Audit Log Access)
-                  </option>
-                </select>
-                <span className="form-hint" style={{ marginTop: "6px", display: "block" }}>
-                  Note: Administrator privileges cannot be self-selected. They must be provisioned by a designated system administrator.
-                </span>
+              <div style={{ padding: "10px 12px", background: "var(--color-status-pending-bg)", border: "1px solid var(--color-border)", borderRadius: "4px", marginBottom: "16px", fontSize: "12px", color: "var(--color-text-secondary)" }}>
+                <strong>Role Notice:</strong> Self-registration creates a verified <strong>Bidder</strong> profile. Procurement Officer credentials for evaluating authorities are provisioned separately through designated government channels.
               </div>
 
               <button
                 type="submit"
-                className="btn btn-primary btn-full mt-4"
+                className="btn btn-primary btn-full"
                 disabled={loading}
               >
-                {loading ? "Registering..." : "Create Account & Continue"}
+                {loading ? "Registering..." : "Create Bidder Account"}
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerify}>
               <div style={{ textAlign: "center", marginBottom: "20px" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--color-navy-900)", marginBottom: "4px" }}>
-                  Verify Email Address
+                  Verify Business Email
                 </div>
                 <p style={{ fontSize: "13px", color: "var(--color-text-secondary)", margin: 0 }}>
-                  A 6-digit verification code has been dispatched to <strong>{email}</strong>.
+                  A 6-digit confirmation code has been dispatched to <strong>{email}</strong>.
                 </p>
               </div>
 
@@ -281,13 +276,13 @@ export default function SignUpPage() {
                 className="btn btn-primary btn-full mt-4"
                 disabled={loading}
               >
-                {loading ? "Verifying..." : "Confirm Code & Open Platform"}
+                {loading ? "Verifying..." : "Confirm & Open Bidder Portal"}
               </button>
             </form>
           )}
 
           <div style={{ marginTop: "20px", textAlign: "center", fontSize: "12.5px", color: "var(--color-text-secondary)" }}>
-            Already have an account?{" "}
+            Already registered?{" "}
             <Link href="/sign-in" style={{ color: "var(--color-navy-700)", fontWeight: 600, textDecoration: "underline" }}>
               Sign in here &rarr;
             </Link>

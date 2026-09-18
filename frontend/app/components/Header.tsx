@@ -8,7 +8,7 @@ import { useUserRole } from "../lib/useUserRole";
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { signOut } = useClerk();
-  const { isSignedIn, name, roleLabel, isAdmin, role } = useUserRole();
+  const { isSignedIn, name, roleLabel, isOfficer, isBidder, role } = useUserRole();
 
   const handleSignOut = async () => {
     await signOut({ redirectUrl: "/" });
@@ -52,42 +52,69 @@ export default function Header() {
           </button>
 
           <nav className={`header-nav${menuOpen ? " open" : ""}`}>
-            <Link
-              href="/tenders"
-              style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
-            >
-              Tenders
-            </Link>
+            {/* Bidder Navigation Links */}
+            {isBidder && (
+              <>
+                <Link
+                  href="/bidder/tenders"
+                  style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  Browse Tenders
+                </Link>
+                <Link
+                  href="/bidder/submissions"
+                  style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  My Submissions
+                </Link>
+              </>
+            )}
 
-            {/* Administrator Only Nav Link */}
-            {isAdmin && (
+            {/* Officer Navigation Links */}
+            {isOfficer && (
+              <>
+                <Link
+                  href="/officer"
+                  style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/officer/tenders"
+                  style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  Tenders
+                </Link>
+                <Link
+                  href="/officer/audit"
+                  style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
+                >
+                  Audit Trail
+                </Link>
+              </>
+            )}
+
+            {/* Signed Out Navigation */}
+            {!isSignedIn && (
               <Link
-                href="/manage-users"
-                style={{
-                  color: "var(--color-saffron)",
-                  textDecoration: "none",
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                }}
+                href="/bidder/tenders"
+                style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
               >
-                <span>Manage Users</span>
+                Procurement Opportunities
               </Link>
             )}
 
             {isSignedIn ? (
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "8px" }}>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                  <span className="header-user" style={{ lineHeight: 1.2 }}>{name?.toUpperCase()}</span>
+                  <span className="header-user" style={{ lineHeight: 1.2 }}>{name}</span>
                   <span
                     style={{
-                      fontSize: "10.5px",
-                      fontWeight: 600,
+                      fontSize: "10px",
+                      fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.4px",
-                      color: role === "administrator" ? "var(--color-saffron)" : role === "auditor" ? "#cbd5e1" : "var(--color-status-verified)",
+                      color: isOfficer ? "var(--color-saffron)" : "var(--color-status-verified)",
                     }}
                   >
                     {roleLabel}

@@ -43,151 +43,111 @@ function ComingSoonIcon() {
 }
 
 const PIPELINE_STAGES = [
-  "Tender AI",
-  "Rule Generation",
-  "Document AI",
-  "Cross-Document Verification",
-  "External Verification",
-  "Evidence + Compliance Engine",
-  "Human Review",
-  "Audit Report",
+  "Tender Ingestion / GeM Import",
+  "Rule Extraction & Officer Approval",
+  "Tender Published (OPEN)",
+  "Bidder Proposal Submission",
+  "Automated Document Verification",
+  "Cross-Document Consistency Engine",
+  "Human-in-the-Loop Officer Review",
+  "Final Qualification Ruling & Audit",
 ];
 
 const FEATURE_MODULES = [
   {
     num: 1,
-    title: "Tender Intelligence",
-    desc: "Extracts eligibility criteria and mandatory-document requirements from an uploaded tender document.",
+    title: "Tender Intelligence & Import",
+    desc: "Extracts eligibility criteria and mandatory document requirements from uploaded PDFs, raw text, or simulated GeM tender APIs.",
     status: "Available",
   },
   {
     num: 2,
-    title: "Bidder Document Intelligence",
-    desc: "Classifies bidder documents (PAN, GST, Udyam, financials, OEM authorization, declarations) and extracts their fields.",
+    title: "Officer Rule Approval & Publishing",
+    desc: "Officers review AI-extracted criteria, edit requirements, approve rules, and explicitly publish tenders to open public bidding.",
     status: "Available",
   },
   {
     num: 3,
-    title: "Cross-Document Consistency Engine",
-    desc: "Detects mismatched names, registration numbers, addresses, and dates across a bidder's own documents.",
+    title: "Self-Service Bidder Portal",
+    desc: "Vendors discover open tenders, review required document checklists, submit applications with attachments, and track submission progress.",
     status: "Available",
   },
   {
     num: 4,
-    title: "Compliance Rules Engine",
-    desc: "Runs deterministic pass/fail/review/missing checks against the extracted tender requirements.",
+    title: "Bidder Document Intelligence",
+    desc: "Classifies bidder documents (PAN, GSTIN, Udyam, Financial Statements, OEM Authorization) and extracts key entity fields.",
     status: "Available",
   },
   {
     num: 5,
-    title: "External Verification Layer",
-    desc: "Connects to government registries (GSTN, Udyam, PAN/IT, MCA, DPIIT, NSIC, EPFO, ESIC, DigiLocker) and blacklist/debarment sources to independently confirm bidder data.",
-    status: "Coming Soon",
+    title: "Cross-Document Consistency Engine",
+    desc: "Detects mismatched names, registration numbers, addresses, and dates across a bidder's own paperwork.",
+    status: "Available",
   },
   {
     num: 6,
-    title: "Evidence Engine",
-    desc: "Links every finding back to its source: requirement, rule, document, page, extracted field, and reason.",
+    title: "Compliance Rules Engine",
+    desc: "Runs deterministic pass/fail/missing/issue checks against approved tender eligibility rules.",
     status: "Available",
   },
   {
     num: 7,
-    title: "Compliance & Risk Dashboard",
-    desc: "Shows verified/missing/issue/pending counts per bidder — never a single opaque score.",
+    title: "Side-by-Side Evidence Review",
+    desc: "Star-layout evidence comparison showing extracted values side-by-side with plain-language analysis and mismatch highlights.",
     status: "Available",
   },
   {
     num: 8,
-    title: "AI Recommendation Engine",
-    desc: "Gives a plain-language recommendation on each finding; the AI recommends, the officer decides.",
+    title: "Human-in-the-Loop Review Controls",
+    desc: "Officer actions: Accept Finding, Reject Finding, Request Clarification, Mark Verified, or Override with mandatory note.",
     status: "Available",
   },
   {
     num: 9,
-    title: "Human-in-the-Loop Review",
-    desc: "Officer actions: accept, reject, request clarification, mark verified, or override with a required note.",
+    title: "Officer Final Qualification Decision",
+    desc: "Exclusive human authority to qualify or disqualify proposals with mandatory committee justification notes.",
     status: "Available",
   },
   {
     num: 10,
-    title: "Audit Trail",
-    desc: "Records who did what, which rule or document was involved, and any override reason, into a compliance report.",
+    title: "Immutable Audit Trail",
+    desc: "Complete chronological log of all officer actions, overrides, rule approvals, and qualification decisions.",
     status: "Available",
   },
 ];
 
 const INNOVATIONS = [
   {
+    title: "The Golden Rule: Bidder Submits, BidShield Verifies, Officer Decides",
+    desc: "AI extracts evidence and highlights discrepancies; only the designated Procurement Officer makes final qualification rulings.",
+    status: "Available",
+  },
+  {
     title: "Tender-to-Rule Intelligence",
-    desc: "Tender clauses become structured, executable rules instead of a manual checklist.",
+    desc: "Complex tender clauses become structured, executable rules instead of a manual checklist.",
     status: "Available",
   },
   {
     title: "Cross-Document Intelligence",
-    desc: "Checks whether a bidder's own documents agree with each other, not just whether each one reads correctly on its own.",
+    desc: "Checks whether a bidder's own documents agree with each other, catching subtle entity name or PAN/GST discrepancies.",
     status: "Available",
   },
   {
     title: "Evidence-First AI",
-    desc: "Every output is backed by source document, page, field, rule, and reason; nothing is a black box.",
+    desc: "Every output is backed by source document, page, field, rule, and rationale; no opaque confidence scores.",
     status: "Available",
   },
   {
-    title: "Unified Verification Adapter Layer",
-    desc: "One compliance engine with pluggable adapters, so real government APIs can be added later without changing the core platform.",
-    status: "Coming Soon",
-    note: "Adapters are simulated today",
-  },
-  {
-    title: "Human-Centric AI",
-    desc: "The AI finds, explains, and provides evidence; the procurement officer always makes the final call.",
+    title: "Clean Two-Actor Separation",
+    desc: "Clean separation between public Bidders submitting bids and verified Procurement Officers managing tenders.",
     status: "Available",
   },
   {
-    title: "Compliance as an Evidence Graph",
-    desc: "Requirement → rule → evidence → verification → finding → officer decision, modeled as a traceable graph rather than a flat checklist.",
+    title: "Simulated GeM & Registry Adapters",
+    desc: "Ready for live GeM and statutory API integrations with pluggable verification architecture.",
     status: "Coming Soon",
-    note: "Long-term direction",
+    note: "Simulated GeM import available today",
   },
-];
-
-const ROADMAP_PHASES = [
-  {
-    phase: "Phase 1: Document + Tender Intelligence",
-    desc: "Automated tender rule generation, document classification, deterministic cross-document consistency checks, and officer audit logging.",
-    status: "Available",
-    stageLabel: "Current Stage",
-  },
-  {
-    phase: "Phase 2: API-based Verification",
-    desc: "Direct integration with external statutory registries (GSTN, PAN, MCA-21, Udyam, DigiLocker) replacing simulated adapter endpoints.",
-    status: "Coming Soon",
-    stageLabel: "Planned",
-  },
-  {
-    phase: "Phase 3: Enterprise / CPSE Deployment",
-    desc: "Multi-tenant deployment across central public sector enterprises with centralized rule knowledge base and reusable templates.",
-    status: "Coming Soon",
-    stageLabel: "Planned",
-  },
-  {
-    phase: "Phase 4: Multi-department Compliance Platform",
-    desc: "Cross-department procurement compliance network with role-based access control, cross-tender analytics, and high-volume asynchronous batch verification.",
-    status: "Coming Soon",
-    stageLabel: "Planned",
-  },
-];
-
-const COMING_SOON_ADDITIONAL = [
-  "OEM direct authorization verification",
-  "Central blacklist and debarment database screening",
-  "Make-in-India local-content declaration validation",
-  "Multi-CPSE enterprise deployment configuration",
-  "Central procurement rule knowledge base",
-  "Reusable tender rule templates library",
-  "Cross-tender historical compliance analytics",
-  "Role-based access control (RBAC) for evaluation committees",
-  "Asynchronous high-volume document batch processing",
 ];
 
 export default function LandingPage() {
@@ -297,39 +257,37 @@ export default function LandingPage() {
                 BidShield AI
               </Link>
               <span style={{ fontSize: "11px", color: "#cbd5e1", letterSpacing: "0.3px" }}>
-                PS 26100 — AI-Powered Integrated Bid Compliance Verification Platform for GeM Procurement
+                AI-Powered Integrated Bid Compliance Verification Platform for GeM Procurement
               </span>
             </div>
           </div>
 
-          <nav className="header-nav open" style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-            <a href="#features" style={{ color: "#ffffff", textDecoration: "none", fontSize: "13.5px", fontWeight: 500 }}>
-              Features
-            </a>
-            <a href="#innovations" style={{ color: "#ffffff", textDecoration: "none", fontSize: "13.5px", fontWeight: 500 }}>
-              Innovations
-            </a>
-            <a href="#roadmap" style={{ color: "#ffffff", textDecoration: "none", fontSize: "13.5px", fontWeight: 500 }}>
-              Roadmap
-            </a>
+          <nav className="header-nav open" style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+            <Link href="/bidder" style={{ color: "#ffffff", textDecoration: "none", fontSize: "13.5px", fontWeight: 500 }}>
+              Bidder Portal
+            </Link>
+            <Link href="/officer" style={{ color: "#ffffff", textDecoration: "none", fontSize: "13.5px", fontWeight: 500 }}>
+              Officer Portal
+            </Link>
+            <Link href="/sign-in" className="btn btn-secondary btn-sm" style={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.4)" }}>
+              Sign In
+            </Link>
             <Link
-              href="/tenders"
-              className="btn btn-primary"
+              href="/bidder/tenders"
+              className="btn btn-primary btn-sm"
               style={{
                 backgroundColor: "var(--color-saffron)",
                 color: "#0A2E4D",
                 fontWeight: 700,
-                fontSize: "13px",
-                padding: "8px 18px",
               }}
             >
-              Open Platform &rarr;
+              Explore Tenders &rarr;
             </Link>
           </nav>
         </div>
       </header>
 
-      {/* 4. 3px Tricolor Ribbon Strip */}
+      {/* 4. Tricolor Ribbon Strip */}
       <div className="tricolor-strip">
         <span></span>
         <span></span>
@@ -337,33 +295,111 @@ export default function LandingPage() {
       </div>
 
       <main id="main-content">
-        {/* 5. Hero Section (Clean, Honest, No Marketing Invented Stats) */}
+        {/* 5. Hero Section */}
         <section className="landing-hero-simple">
           <div className="landing-hero-simple-inner">
             <span className="portal-section-kicker">GeM Public Procurement Platform</span>
             <h1>BidShield AI</h1>
             <p className="landing-tagline">
-              From document-heavy bid evaluation to evidence-driven intelligent compliance verification.
+              The Bidder submits. BidShield verifies. The Officer decides.
             </p>
             <p className="landing-problem-desc">
-              Fragmented portals, document-heavy manual verification, tender-specific rules that have to be checked by hand, and cross-document inconsistencies between a bidder&apos;s own paperwork together make bid evaluation slow and error-prone. BidShield AI provides an integrated pipeline from tender intelligence and cross-document verification to deterministic compliance checks, human review, and immutable audit reports.
+              BidShield AI replaces slow, manual bid scrutiny with an automated evidence-driven verification engine. We extract eligibility criteria from tenders, verify submissions automatically across documents, highlight discrepancies with side-by-side evidence, and empower procurement officers with complete human-in-the-loop decision authority.
             </p>
-            <div>
-              <Link href="/tenders" className="btn btn-primary" style={{ padding: "10px 24px", fontSize: "14px", fontWeight: 600 }}>
-                Open Platform &rarr;
+
+            {/* Portal Action Buttons */}
+            <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginTop: "24px" }}>
+              <Link
+                href="/bidder"
+                className="btn btn-primary"
+                style={{
+                  padding: "12px 28px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  backgroundColor: "var(--color-saffron)",
+                  color: "#0A2E4D",
+                }}
+              >
+                🏢 Bidder Portal — Discover & Apply &rarr;
+              </Link>
+
+              <Link
+                href="/officer"
+                className="btn btn-secondary"
+                style={{
+                  padding: "12px 28px",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  backgroundColor: "rgba(255,255,255,0.12)",
+                  color: "#FFFFFF",
+                  borderColor: "rgba(255,255,255,0.3)",
+                }}
+              >
+                🛡️ Officer Portal — Tender & Evaluation Command &rarr;
               </Link>
             </div>
           </div>
         </section>
 
         <div className="page-container" style={{ marginTop: "36px" }}>
+          {/* Dual Actor Workflow Card Grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", marginBottom: "52px" }}>
+            <div className="card" style={{ padding: "28px", borderTop: "4px solid var(--color-saffron)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <span style={{ fontSize: "24px" }}>🏢</span>
+                <div>
+                  <span className="portal-section-kicker">For Bidders & Vendors</span>
+                  <h3 style={{ fontSize: "18px", color: "var(--color-navy-900)", margin: 0 }}>
+                    Self-Service Bid Submission
+                  </h3>
+                </div>
+              </div>
+              <p style={{ fontSize: "13.5px", color: "var(--color-text-secondary)", lineHeight: 1.5, marginBottom: "16px" }}>
+                Browse live tenders, review mandatory document checklists and financial thresholds, submit bids with required attachments, and track high-level progress.
+              </p>
+              <ul style={{ paddingLeft: "20px", fontSize: "13px", color: "var(--color-navy-900)", lineHeight: 1.8, marginBottom: "20px" }}>
+                <li>Browse OPEN tender opportunities</li>
+                <li>Clear document and eligibility checklist</li>
+                <li>Instant submission confirmation and reference tracking</li>
+                <li>Clean, private vendor status view</li>
+              </ul>
+              <Link href="/bidder/tenders" className="btn btn-secondary" style={{ width: "100%", textAlign: "center" }}>
+                Browse Open Tenders &rarr;
+              </Link>
+            </div>
+
+            <div className="card" style={{ padding: "28px", borderTop: "4px solid var(--color-navy-700)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                <span style={{ fontSize: "24px" }}>🛡️</span>
+                <div>
+                  <span className="portal-section-kicker">For Procurement Officers</span>
+                  <h3 style={{ fontSize: "18px", color: "var(--color-navy-900)", margin: 0 }}>
+                    Tender Command & Evaluation
+                  </h3>
+                </div>
+              </div>
+              <p style={{ fontSize: "13.5px", color: "var(--color-text-secondary)", lineHeight: 1.5, marginBottom: "16px" }}>
+                Create or import tenders (PDF, raw text, GeM sample), approve AI rules, explicitly publish tenders, inspect side-by-side evidence, and record official qualification rulings.
+              </p>
+              <ul style={{ paddingLeft: "20px", fontSize: "13px", color: "var(--color-navy-900)", lineHeight: 1.8, marginBottom: "20px" }}>
+                <li>Import from GeM or upload tender PDFs</li>
+                <li>Rule extraction, refinement, and explicit publish lifecycle</li>
+                <li>Side-by-side mismatch comparison & AI analysis</li>
+                <li>Human-in-the-loop actions and immutable audit trail</li>
+              </ul>
+              <Link href="/officer" className="btn btn-primary" style={{ width: "100%", textAlign: "center" }}>
+                Enter Officer Command Center &rarr;
+              </Link>
+            </div>
+          </div>
+
           {/* 6. Pipeline Diagram Section */}
           <section id="pipeline" style={{ marginBottom: "52px" }}>
             <div className="portal-section-header">
               <span className="portal-section-kicker">End-to-End Architecture</span>
               <h2 className="portal-section-title">The Verification Pipeline</h2>
               <p className="portal-section-desc">
-                The sequential workflow from tender document ingestion to the finalized compliance audit report.
+                Sequential workflow from tender creation and bidder submission to evidence verification and officer qualification.
               </p>
             </div>
 
@@ -389,9 +425,9 @@ export default function LandingPage() {
           <section id="features" style={{ marginBottom: "56px" }}>
             <div className="portal-section-header">
               <span className="portal-section-kicker">Platform Capabilities</span>
-              <h2 className="portal-section-title">Feature Modules</h2>
+              <h2 className="portal-section-title">Core Feature Modules</h2>
               <p className="portal-section-desc">
-                Current availability of the ten core functional modules comprising the BidShield AI platform.
+                Complete functional suite powering BidShield AI compliance evaluation.
               </p>
             </div>
 
@@ -432,7 +468,7 @@ export default function LandingPage() {
               <span className="portal-section-kicker">Technical Distinctions</span>
               <h2 className="portal-section-title">Core Innovations</h2>
               <p className="portal-section-desc">
-                Six foundational design innovations that differentiate BidShield AI from traditional manual checklists.
+                Foundational architectural principles distinguishing BidShield AI from legacy procurement software.
               </p>
             </div>
 
@@ -467,64 +503,6 @@ export default function LandingPage() {
                   </div>
                 );
               })}
-            </div>
-          </section>
-
-          {/* 9. Roadmap Section */}
-          <section id="roadmap" style={{ marginBottom: "56px" }}>
-            <div className="portal-section-header">
-              <span className="portal-section-kicker">Deployment Plan</span>
-              <h2 className="portal-section-title">Platform Roadmap</h2>
-              <p className="portal-section-desc">
-                Phased implementation trajectory from tender and document intelligence to multi-CPSE compliance infrastructure.
-              </p>
-            </div>
-
-            <div className="roadmap-timeline">
-              {ROADMAP_PHASES.map((item, idx) => {
-                const isCurrent = item.status === "Available";
-                return (
-                  <div
-                    key={idx}
-                    className={`roadmap-phase-card ${isCurrent ? "current" : "future"}`}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "8px" }}>
-                      <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--color-navy-900)" }}>
-                        {item.phase}
-                      </h3>
-                      {isCurrent ? (
-                        <span className="spec-badge-available">
-                          <AvailableIcon />
-                          {item.stageLabel}
-                        </span>
-                      ) : (
-                        <span className="spec-badge-coming-soon">
-                          <ComingSoonIcon />
-                          {item.stageLabel}
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ fontSize: "13px", color: "var(--color-text-secondary)", lineHeight: 1.5, margin: 0 }}>
-                      {item.desc}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Additional Coming-Soon Items List */}
-            <div className="card mt-6" style={{ borderStyle: "dashed", borderColor: "#94a3b8", backgroundColor: "#fafafa" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <ComingSoonIcon />
-                <h3 style={{ fontSize: "14px", fontWeight: 700, color: "var(--color-navy-900)", margin: 0 }}>
-                  Additional Planned Features & Capabilities
-                </h3>
-              </div>
-              <ul className="roadmap-future-bullets">
-                {COMING_SOON_ADDITIONAL.map((item, idx) => (
-                  <li key={idx}>{item}</li>
-                ))}
-              </ul>
             </div>
           </section>
         </div>

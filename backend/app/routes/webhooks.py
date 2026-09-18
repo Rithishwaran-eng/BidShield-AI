@@ -15,10 +15,9 @@ router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 @router.post("/clerk")
 async def clerk_webhook(request: Request):
     """
-    Clerk Webhook endpoint for syncing users and validating requested roles.
+    Clerk Webhook endpoint for syncing users and role assignment.
     Subscribes to user.created and user.updated events.
-    Verifies Svix signature, validates requestedRole, sets public_metadata.role via Clerk API,
-    and mirrors user to Supabase users table.
+    Public self-registrations default strictly to 'bidder'.
     """
     if not CLERK_WEBHOOK_SIGNING_SECRET:
         logger.error("CLERK_WEBHOOK_SIGNING_SECRET is not configured.")
@@ -84,14 +83,13 @@ async def clerk_webhook(request: Request):
         unsafe_metadata = data.get("unsafe_metadata") or {}
         requested_role = unsafe_metadata.get("requestedRole")
 
-        # Validation rule: only procurement_officer or auditor. Default to auditor.
-        if requested_role in ("procurement_officer", "auditor"):
-            validated_role = requested_role
+        # Public users default to bidder unless explicitly authorized
+        if requested_role == "procurement_officer" and (
+            email.endswith(".gov.in") or email.endswith(".nic.in") or "officer" in email.lower() or "cpcl" in email.lower()
+        ):
+            validated_role = "procurement_officer"
         else:
-            logger.warning(
-                f"Invalid or missing requestedRole '{requested_role}' for user {user_id}. Defaulting to 'auditor'."
-            )
-            validated_role = "auditor"
+            validated_role = "bidder"
 
         # Update public_metadata.role via Clerk Backend API
         if CLERK_SECRET_KEY:
@@ -104,8 +102,6 @@ async def clerk_webhook(request: Request):
                 logger.info(f"Updated Clerk public_metadata.role to '{validated_role}' for user {user_id}")
             except Exception as e:
                 logger.error(f"Failed to update Clerk public_metadata: {e}")
-        else:
-            logger.warning("CLERK_SECRET_KEY not set; skipping Clerk public_metadata update.")
 
         # Upsert into Supabase users table
         try:
@@ -116,15 +112,14 @@ async def clerk_webhook(request: Request):
                 "role": validated_role,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }).execute()
-            logger.info(f"Upserted user {user_id} into Supabase users table.")
         except Exception as e:
-            logger.error(f"Error mirroring user to Supabase: {e}. (Run 002_add_users_and_clerk_auth.sql in Supabase SQL Editor if users table is missing).")
+            logger.warning(f"Error mirroring user to Supabase: {e}")
 
         return {"status": "success", "event": event_type, "user_id": user_id, "role": validated_role}
 
     elif event_type == "user.updated":
         public_metadata = data.get("public_metadata") or {}
-        role = public_metadata.get("role") or "auditor"
+        role = public_metadata.get("role") or "bidder"
 
         try:
             sb.table("users").upsert({
@@ -134,7 +129,6 @@ async def clerk_webhook(request: Request):
                 "role": role,
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             }).execute()
-            logger.info(f"Updated user {user_id} in Supabase users table.")
         except Exception as e:
             logger.error(f"Error mirroring user update to Supabase: {e}")
 

@@ -1,6 +1,7 @@
-"""Audit log routes: list audit entries for a tender."""
+"""Audit log routes: comprehensive officer audit trail for tenders and compliance actions."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends
 from app.auth import require_role
 from app.supabase_client import get_supabase
 
@@ -8,65 +9,100 @@ router = APIRouter()
 
 
 @router.get(
-    "/tenders/{tender_id}/audit",
-    dependencies=[Depends(require_role("procurement_officer", "administrator", "auditor"))],
+    "/officer/audit",
+    dependencies=[Depends(require_role("procurement_officer"))],
 )
-def get_audit_log(tender_id: str):
+def get_global_audit_log(limit: int = 100):
+    """Officer views system-wide compliance audit trail across all tenders."""
+    sb = get_supabase()
+    res = sb.table("audit_log").select("*").order("created_at", desc=True).limit(limit).execute()
+    entries = res.data or []
 
+    # Enrich entries
+    return _enrich_audit_entries(sb, entries)
+
+
+@router.get(
+    "/tenders/{tender_id}/audit",
+    dependencies=[Depends(require_role("procurement_officer"))],
+)
+def get_tender_audit_log(tender_id: str):
+    """Officer views audit history specific to a tender."""
     sb = get_supabase()
 
-    # Get all bidders for this tender
-    bidders = sb.table("bidders").select("id").eq("tender_id", tender_id).execute()
-    bidder_ids = [b["id"] for b in bidders.data]
+    # 1. Query audit log directly with tender_id
+    tender_audits = sb.table("audit_log").select("*").eq("tender_id", tender_id).execute()
+    all_audit_entries = list(tender_audits.data or [])
+    seen_ids = {a["id"] for a in all_audit_entries}
 
-    if not bidder_ids:
-        return []
+    # 2. Get bids for this tender
+    bids = sb.table("bids").select("id").eq("tender_id", tender_id).execute()
+    bid_ids = [b["id"] for b in (bids.data or [])]
 
-    # Get all findings for these bidders
-    all_findings = []
-    for bid_id in bidder_ids:
-        findings = sb.table("findings").select("id").eq("bidder_id", bid_id).execute()
-        all_findings.extend(findings.data)
+    # 3. Get findings for these bids
+    if bid_ids:
+        findings = sb.table("findings").select("id").in_("bid_id", bid_ids).execute()
+        for f in (findings.data or []):
+            f_audits = sb.table("audit_log").select("*").eq("finding_id", f["id"]).execute()
+            for fa in (f_audits.data or []):
+                if fa["id"] not in seen_ids:
+                    seen_ids.add(fa["id"])
+                    all_audit_entries.append(fa)
 
-    finding_ids = [f["id"] for f in all_findings]
+    # Sort descending
+    all_audit_entries.sort(key=lambda x: x.get("created_at", ""), reverse=True)
 
-    if not finding_ids:
-        return []
+    return _enrich_audit_entries(sb, all_audit_entries)
 
-    # Get audit log entries for these findings
-    all_audit = []
-    for fid in finding_ids:
-        audit = sb.table("audit_log").select("*").eq("finding_id", fid).execute()
-        all_audit.extend(audit.data)
 
-    # Sort by timestamp descending
-    all_audit.sort(key=lambda x: x.get("created_at", ""), reverse=True)
 
-    # Enrich with finding/rule info
+def _enrich_audit_entries(sb, entries: list) -> list:
     enriched = []
-    for entry in all_audit:
+    for entry in entries:
         finding_id = entry.get("finding_id")
+        bid_id = entry.get("bid_id")
         finding_info = None
         rule_info = None
+        bidder_name = None
 
         if finding_id:
-            finding = sb.table("findings").select("rule_id, status, bidder_id").eq("id", finding_id).execute()
-            if finding.data:
-                finding_info = finding.data[0]
-                if finding_info.get("rule_id"):
-                    rule = sb.table("rules").select("requirement, rule_id").eq("id", finding_info["rule_id"]).execute()
-                    if rule.data:
-                        rule_info = rule.data[0]
+            try:
+                finding = sb.table("findings").select("rule_id, status, bidder_id, bid_id").eq("id", finding_id).execute()
+                if finding.data:
+                    finding_info = finding.data[0]
+                    if finding_info.get("rule_id"):
+                        rule = sb.table("rules").select("requirement, rule_id").eq("id", finding_info["rule_id"]).execute()
+                        if rule.data:
+                            rule_info = rule.data[0]
 
-                # Get bidder name
-                bidder = sb.table("bidders").select("name").eq("id", finding_info["bidder_id"]).execute()
-                if bidder.data:
-                    entry["bidder_name"] = bidder.data[0]["name"]
+                    target_bidder_id = finding_info.get("bidder_id")
+                    if not target_bidder_id and finding_info.get("bid_id"):
+                        bid_res = sb.table("bids").select("bidder_id").eq("id", finding_info["bid_id"]).execute()
+                        if bid_res.data:
+                            target_bidder_id = bid_res.data[0].get("bidder_id")
 
-        entry["rule_requirement"] = rule_info["requirement"] if rule_info else "Cross-document check"
-        entry["rule_code"] = rule_info["rule_id"] if rule_info else "CROSS_DOC"
+                    if target_bidder_id:
+                        bidder = sb.table("bidders").select("name").eq("id", target_bidder_id).execute()
+                        if bidder.data:
+                            bidder_name = bidder.data[0]["name"]
+            except Exception:
+                pass
+
+        if not bidder_name and bid_id:
+            try:
+                bid_res = sb.table("bids").select("bidder_id").eq("id", bid_id).execute()
+                if bid_res.data and bid_res.data[0].get("bidder_id"):
+                    bidder = sb.table("bidders").select("name").eq("id", bid_res.data[0]["bidder_id"]).execute()
+                    if bidder.data:
+                        bidder_name = bidder.data[0]["name"]
+            except Exception:
+                pass
+
+        entry["bidder_name"] = bidder_name or entry.get("bidder_name") or "--"
+        entry["rule_requirement"] = rule_info["requirement"] if rule_info else entry.get("rule_requirement") or "Cross-document check"
+        entry["rule_code"] = rule_info["rule_id"] if rule_info else entry.get("rule_code") or "CROSS_DOC"
         entry["finding_status"] = finding_info["status"] if finding_info else None
-
         enriched.append(entry)
 
     return enriched
+
