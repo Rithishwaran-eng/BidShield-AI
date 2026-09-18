@@ -9,9 +9,21 @@ export default function SignInPage() {
   const { isSignedIn, user, isLoaded } = useUser();
   const router = useRouter();
 
-  // Role-aware redirect if already signed in
+  // Role-aware and destination-aware redirect if already signed in
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
+      if (typeof window !== "undefined") {
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectUrl = searchParams.get("redirect_url") || "";
+        if (redirectUrl.includes("/bidder")) {
+          router.push("/bidder");
+          return;
+        }
+        if (redirectUrl.includes("/officer")) {
+          router.push("/officer");
+          return;
+        }
+      }
       const role = (user.publicMetadata?.role as string) || "bidder";
       const isOfficer = ["procurement_officer", "auditor", "administrator", "officer"].includes(role);
       if (isOfficer) {

@@ -8,7 +8,7 @@ import { useUserRole } from "../lib/useUserRole";
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { signOut } = useClerk();
-  const { isSignedIn, name, roleLabel, isOfficer, isBidder, role } = useUserRole();
+  const { isSignedIn, name, roleLabel, isOfficer, isBidder, role, hasOfficerPrivilege } = useUserRole();
 
   const handleSignOut = async () => {
     await signOut({ redirectUrl: "/" });
@@ -67,6 +67,23 @@ export default function Header() {
                 >
                   My Submissions
                 </Link>
+                {hasOfficerPrivilege && (
+                  <Link
+                    href="/officer"
+                    style={{
+                      color: "var(--color-saffron)",
+                      textDecoration: "none",
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      border: "1px solid rgba(255,153,51,0.5)",
+                      padding: "3px 10px",
+                      borderRadius: "4px",
+                      marginLeft: "6px",
+                    }}
+                  >
+                    Officer Portal &rarr;
+                  </Link>
+                )}
               </>
             )}
 
@@ -90,6 +107,21 @@ export default function Header() {
                   style={{ color: "#ffffff", textDecoration: "none", fontSize: "13px", fontWeight: 500 }}
                 >
                   Audit Trail
+                </Link>
+                <Link
+                  href="/bidder"
+                  style={{
+                    color: "#93c5fd",
+                    textDecoration: "none",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    border: "1px solid rgba(147,197,253,0.4)",
+                    padding: "3px 10px",
+                    borderRadius: "4px",
+                    marginLeft: "6px",
+                  }}
+                >
+                  Bidder Portal &rarr;
                 </Link>
               </>
             )}
