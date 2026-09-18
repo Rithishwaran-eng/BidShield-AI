@@ -186,7 +186,7 @@ export default function BidApplyPage() {
               onClick={handleQuickFillSample}
               style={{ fontSize: "12px" }}
             >
-              ⚡ Quick Fill Sample Data
+              Quick Fill Sample Data
             </button>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function BidApplyPage() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#FFFFFF", padding: "8px 12px", borderRadius: "4px", border: "1px solid #BBF7D0" }}>
                         <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginRight: "8px" }}>
                           <span style={{ fontSize: "12.5px", fontWeight: 600, color: "#166534" }}>
-                            ✓ {uploadedFile.name}
+                            {uploadedFile.name}
                           </span>
                           <span style={{ fontSize: "11px", color: "#64748b", display: "block" }}>
                             {Math.round(uploadedFile.size / 1024)} KB

@@ -195,7 +195,7 @@ export default function OfficerNewTenderPage() {
                     </div>
                   ) : file ? (
                     <div style={{ color: "var(--color-status-verified)", fontWeight: 600, fontSize: "13.5px" }}>
-                      📄 Loaded: {file.name} ({Math.round(file.size / 1024)} KB) - Text extracted below
+                      Loaded: {file.name} ({Math.round(file.size / 1024)} KB) — Text extracted below
                     </div>
                   ) : (
                     <div style={{ fontSize: "13px", color: "var(--color-navy-700)" }}>

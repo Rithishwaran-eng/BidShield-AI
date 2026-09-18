@@ -183,7 +183,7 @@ export default function OfficerRulesPage() {
               onClick={handleExtract}
               disabled={extracting}
             >
-              {extracting ? "Extracting Rules with Gemini..." : "⚡ Extract Rules with AI"}
+              {extracting ? "Extracting Rules with Gemini..." : "Extract Rules with AI"}
             </button>
           </div>
         )}
@@ -215,7 +215,7 @@ export default function OfficerRulesPage() {
                   onClick={handleExtract}
                   disabled={extracting}
                 >
-                  {extracting ? "Re-extracting..." : "🔄 Re-extract with AI"}
+                  {extracting ? "Re-extracting..." : "Re-extract with AI"}
                 </button>
               </div>
             </div>
@@ -347,7 +347,7 @@ export default function OfficerRulesPage() {
             <div className="card" style={{ padding: "20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", backgroundColor: "#F8FAFC" }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-navy-900)" }}>
-                  {allRulesApproved ? "✓ Rules Status: Approved" : "Rules Status: Pending Approval"}
+                  {allRulesApproved ? "Rules Status: Approved" : "Rules Status: Pending Approval"}
                 </div>
                 <div style={{ fontSize: "12.5px", color: "var(--color-text-secondary)" }}>
                   {allRulesApproved
@@ -363,7 +363,7 @@ export default function OfficerRulesPage() {
                   onClick={handleApprove}
                   disabled={saving || rules.length === 0}
                 >
-                  {saving ? "Approving..." : "✓ Approve Rules"}
+                  {saving ? "Approving..." : "Approve Rules"}
                 </button>
 
                 {!isOpen && (
@@ -378,7 +378,7 @@ export default function OfficerRulesPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {publishing ? "Publishing..." : "🚀 Publish & Open for Bids"}
+                    {publishing ? "Publishing..." : "Publish & Open for Bids"}
                   </button>
                 )}
 

@@ -65,7 +65,7 @@ export default function OfficerAuditTrailPage() {
               onClick={fetchAudit}
               disabled={loading}
             >
-              🔄 Refresh Audit Log
+              Refresh Audit Log
             </button>
           }
         />

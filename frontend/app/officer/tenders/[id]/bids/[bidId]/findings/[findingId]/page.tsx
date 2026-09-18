@@ -222,7 +222,7 @@ export default function OfficerFindingEvidencePage() {
               {Object.entries(evidenceByDoc).map(([docType, items]) => (
                 <div key={docType} className="evidence-block">
                   <div className="evidence-block-header">
-                    <span>📄 {docType}</span>
+                    <span>{docType}</span>
                     {items[0]?.page && (
                       <span style={{ fontSize: "11px", fontWeight: 500, opacity: 0.85 }}>Page {items[0].page}</span>
                     )}
@@ -347,7 +347,7 @@ export default function OfficerFindingEvidencePage() {
                   onClick={handleReopen}
                   disabled={actionLoading}
                 >
-                  {actionLoading ? "Reopening..." : "🔓 Reopen Finding for Re-evaluation"}
+                  {actionLoading ? "Reopening..." : "Reopen Finding for Re-evaluation"}
                 </button>
               </div>
             </div>
@@ -365,7 +365,7 @@ export default function OfficerFindingEvidencePage() {
                   disabled={actionLoading}
                   style={{ backgroundColor: "var(--color-status-verified)", borderColor: "var(--color-status-verified)" }}
                 >
-                  ✓ Accept Finding
+                  Accept Finding
                 </button>
 
                 <button
@@ -374,7 +374,7 @@ export default function OfficerFindingEvidencePage() {
                   onClick={() => handleAction("reject")}
                   disabled={actionLoading}
                 >
-                  ✕ Reject Finding
+                  Reject Finding
                 </button>
 
                 <button
@@ -383,7 +383,7 @@ export default function OfficerFindingEvidencePage() {
                   onClick={() => handleAction("request_clarification")}
                   disabled={actionLoading}
                 >
-                  💬 Request Clarification
+                  Request Clarification
                 </button>
 
                 <button
@@ -392,7 +392,7 @@ export default function OfficerFindingEvidencePage() {
                   onClick={() => handleAction("mark_verified")}
                   disabled={actionLoading}
                 >
-                  ☑ Mark as Verified
+                  Mark as Verified
                 </button>
 
                 <button
@@ -402,7 +402,7 @@ export default function OfficerFindingEvidencePage() {
                   disabled={actionLoading}
                   style={{ fontWeight: 600 }}
                 >
-                  ⚡ Override Finding...
+                  Override Finding...
                 </button>
               </div>
 

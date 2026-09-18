@@ -138,7 +138,7 @@ export default function OfficerBidDetailPage() {
                 onClick={handleReverify}
                 disabled={reverifying}
               >
-                {reverifying ? "Re-running..." : "🔄 Re-run Verification"}
+                {reverifying ? "Re-running..." : "Re-run Verification"}
               </button>
               <StatusBadge status={bid.status || "submitted"} />
             </div>
@@ -293,7 +293,7 @@ export default function OfficerBidDetailPage() {
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
                   <span style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-navy-900)" }}>
-                    📄 {doc.document_type}
+                    {doc.document_type}
                   </span>
                   <StatusBadge status={doc.extraction_status} />
                 </div>

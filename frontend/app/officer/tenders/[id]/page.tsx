@@ -190,7 +190,7 @@ export default function OfficerTenderOverviewPage() {
                 disabled={updatingStatus}
                 style={{ backgroundColor: "#0A2E4D", color: "#FFFFFF", fontWeight: 700 }}
               >
-                {updatingStatus ? "Publishing..." : "🚀 Publish & Open for Bids"}
+                {updatingStatus ? "Publishing..." : "Publish & Open for Bids"}
               </button>
             </div>
           )}

@@ -202,7 +202,7 @@ export default function BidderSubmissionDetailPage() {
               >
                 <div>
                   <div style={{ fontWeight: 600, fontSize: "13.5px", color: "var(--color-navy-900)" }}>
-                    📄 {doc.document_type}
+                    {doc.document_type}
                   </div>
                   <div style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginTop: "2px" }}>
                     {doc.filename}

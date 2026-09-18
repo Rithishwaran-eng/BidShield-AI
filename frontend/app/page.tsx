@@ -328,7 +328,7 @@ export default function LandingPage() {
                   color: "#0A2E4D",
                 }}
               >
-                🏢 Bidder Portal — Discover & Apply &rarr;
+                Bidder Portal — Discover & Apply &rarr;
               </Link>
 
               <Link
@@ -343,7 +343,7 @@ export default function LandingPage() {
                   borderColor: "rgba(255,255,255,0.3)",
                 }}
               >
-                🛡️ Officer Portal — Tender & Evaluation Command &rarr;
+                Officer Portal — Tender & Evaluation Command &rarr;
               </Link>
             </div>
           </div>
@@ -354,7 +354,16 @@ export default function LandingPage() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px", marginBottom: "52px" }}>
             <div className="card" style={{ padding: "28px", borderTop: "4px solid var(--color-saffron)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                <span style={{ fontSize: "24px" }}>🏢</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="4" y="2" width="16" height="20" rx="2" />
+                  <line x1="9" y1="6" x2="9" y2="6.01" />
+                  <line x1="15" y1="6" x2="15" y2="6.01" />
+                  <line x1="9" y1="10" x2="9" y2="10.01" />
+                  <line x1="15" y1="10" x2="15" y2="10.01" />
+                  <line x1="9" y1="14" x2="9" y2="14.01" />
+                  <line x1="15" y1="14" x2="15" y2="14.01" />
+                  <line x1="9" y1="18" x2="15" y2="18" />
+                </svg>
                 <div>
                   <span className="portal-section-kicker">For Bidders & Vendors</span>
                   <h3 style={{ fontSize: "18px", color: "var(--color-navy-900)", margin: 0 }}>
@@ -378,7 +387,9 @@ export default function LandingPage() {
 
             <div className="card" style={{ padding: "28px", borderTop: "4px solid var(--color-navy-700)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                <span style={{ fontSize: "24px" }}>🛡️</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy-700)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
                 <div>
                   <span className="portal-section-kicker">For Procurement Officers</span>
                   <h3 style={{ fontSize: "18px", color: "var(--color-navy-900)", margin: 0 }}>
@@ -387,7 +398,7 @@ export default function LandingPage() {
                 </div>
               </div>
               <p style={{ fontSize: "13.5px", color: "var(--color-text-secondary)", lineHeight: 1.5, marginBottom: "16px" }}>
-                Create or import tenders (PDF, raw text, GeM sample), approve AI rules, explicitly publish tenders, inspect side-by-side evidence, and record official qualification rulings.
+                Create or import tenders (PDF, raw text), approve AI rules, explicitly publish tenders, inspect side-by-side evidence, and record official qualification rulings.
               </p>
               <ul style={{ paddingLeft: "20px", fontSize: "13px", color: "var(--color-navy-900)", lineHeight: 1.8, marginBottom: "20px" }}>
                 <li>Import from GeM or upload tender PDFs</li>

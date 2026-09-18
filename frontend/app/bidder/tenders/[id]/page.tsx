@@ -178,7 +178,7 @@ export default function BidderTenderDetailPage() {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                         {(rule.evidence_required || []).map((ev: string, idx: number) => (
                           <span key={idx} style={{ fontSize: "12px", background: "#F1F5F9", border: "1px solid #E2E8F0", padding: "3px 8px", borderRadius: "3px", color: "#334155" }}>
-                            📄 {ev}
+                            {ev}
                           </span>
                         ))}
                       </div>

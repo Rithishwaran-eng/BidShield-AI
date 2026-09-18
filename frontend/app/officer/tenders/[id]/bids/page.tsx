@@ -93,7 +93,7 @@ export default function OfficerSubmittedBidsPage() {
                 disabled={syncing}
                 title="Sync with GeM bid repository"
               >
-                {syncing ? "Syncing GeM..." : "🔄 Sync Bids (GeM)"}
+                {syncing ? "Syncing GeM..." : "Sync Bids (GeM)"}
               </button>
               <StatusBadge status={tender?.status || "open"} />
             </div>
