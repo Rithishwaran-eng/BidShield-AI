@@ -9,8 +9,9 @@ from app.config import CLERK_SECRET_KEY, ENVIRONMENT, ALLOW_DEV_AUTH_BYPASS
 
 logger = logging.getLogger(__name__)
 
-# Valid roles in BidShield AI (Strictly two human roles)
-VALID_ROLES = {"bidder", "procurement_officer"}
+# Valid roles in BidShield AI
+OFFICER_ROLES = {"procurement_officer", "auditor", "administrator", "officer"}
+VALID_ROLES = {"bidder", "procurement_officer", "auditor", "administrator", "officer"}
 
 
 async def get_optional_current_user(request: Request) -> Optional[dict]:
@@ -97,9 +98,9 @@ async def get_current_user(request: Request) -> dict:
         )
 
     payload = request_state.payload
-    # Strict role mapping: only "procurement_officer" is officer; all others are "bidder". No administrator mapping.
-    raw_role = payload.get("role") or payload.get("metadata", {}).get("role") or payload.get("public_metadata", {}).get("role") or "bidder"
-    role = "procurement_officer" if raw_role == "procurement_officer" else "bidder"
+    # Role mapping: officer/auditor/admin map to procurement_officer capabilities; others to bidder.
+    raw_role = str(payload.get("role") or payload.get("metadata", {}).get("role") or payload.get("public_metadata", {}).get("role") or "bidder").lower()
+    role = "procurement_officer" if raw_role in OFFICER_ROLES else "bidder"
 
     # Extract user identity information
     user_name = payload.get("name")
@@ -123,7 +124,10 @@ def require_role(*allowed_roles: str) -> Callable:
     """
     async def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
         user_role = current_user.get("role", "bidder")
-        if user_role not in allowed_roles:
+        is_allowed = user_role in allowed_roles
+        if "procurement_officer" in allowed_roles and user_role in OFFICER_ROLES:
+            is_allowed = True
+        if not is_allowed:
             logger.warning(f"Access forbidden: User {current_user.get('sub')} with role '{user_role}' tried to access endpoint requiring {allowed_roles}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

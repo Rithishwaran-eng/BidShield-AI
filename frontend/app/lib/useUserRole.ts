@@ -4,7 +4,9 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { setAuthToken, setTokenGetter } from "./api";
 
-export type UserRole = "procurement_officer" | "bidder";
+export type UserRole = "procurement_officer" | "auditor" | "administrator" | "bidder";
+
+export const OFFICER_ROLES = ["procurement_officer", "auditor", "administrator", "officer"];
 
 export function useUserRole() {
   const { user, isLoaded: userLoaded, isSignedIn } = useUser();
@@ -48,15 +50,18 @@ export function useUserRole() {
   }
 
   // Read verified role from user publicMetadata
-  const roleRaw = (user.publicMetadata?.role as string) || "bidder";
-  const role: UserRole = roleRaw === "procurement_officer" ? "procurement_officer" : "bidder";
+  const roleRaw = ((user.publicMetadata?.role as string) || "bidder").toLowerCase();
+  const isOfficer = OFFICER_ROLES.includes(roleRaw);
+  const role: UserRole = isOfficer ? "procurement_officer" : "bidder";
 
-  const isOfficer = role === "procurement_officer";
-  const isBidder = role === "bidder";
+  const isBidder = !isOfficer;
   const canWrite = isOfficer;
 
-  const roleLabels: Record<UserRole, string> = {
+  const roleLabels: Record<string, string> = {
     procurement_officer: "Procurement Officer",
+    auditor: "Procurement Auditor",
+    administrator: "System Administrator",
+    officer: "Procurement Officer",
     bidder: "Bidder / Supplier",
   };
 

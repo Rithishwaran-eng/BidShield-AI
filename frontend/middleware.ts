@@ -11,6 +11,8 @@ const isOfficerRoute = createRouteMatcher([
   "/officer(.*)",
 ]);
 
+const OFFICER_ROLES = ["procurement_officer", "auditor", "administrator", "officer"];
+
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect();
@@ -18,8 +20,8 @@ const clerkHandler = clerkMiddleware(async (auth, req) => {
     if (isOfficerRoute(req)) {
       const authData = await auth();
       const claims = authData.sessionClaims as any;
-      const role = claims?.metadata?.role || claims?.public_metadata?.role || claims?.role;
-      if (role && role !== "procurement_officer") {
+      const role = String(claims?.metadata?.role || claims?.public_metadata?.role || claims?.role || "").toLowerCase();
+      if (role && !OFFICER_ROLES.includes(role)) {
         return NextResponse.redirect(new URL("/bidder", req.url));
       }
     }

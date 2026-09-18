@@ -13,7 +13,8 @@ export default function SignInPage() {
   useEffect(() => {
     if (isLoaded && isSignedIn && user) {
       const role = (user.publicMetadata?.role as string) || "bidder";
-      if (role === "procurement_officer") {
+      const isOfficer = ["procurement_officer", "auditor", "administrator", "officer"].includes(role);
+      if (isOfficer) {
         router.push("/officer");
       } else {
         router.push("/bidder");
