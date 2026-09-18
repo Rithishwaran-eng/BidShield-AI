@@ -451,6 +451,21 @@ def list_bidder_submissions(current_user: dict = Depends(get_current_user)):
     return sanitized_submissions
 
 
+def _enrich_tender_dict(t: dict) -> dict:
+    if not t:
+        return t
+    text = t.get("uploaded_text") or ""
+    if not t.get("organization") and text:
+        m = re.search(r"(?:Ministry|Department|Procuring Entity):\s*([^\n\r]+)", text)
+        if m:
+            t["organization"] = m.group(1).strip()
+    if not t.get("category") and text:
+        m = re.search(r"(?:Category|Subject|Domain):\s*([^\n\r]+)", text)
+        if m:
+            t["category"] = m.group(1).strip()
+    return t
+
+
 @router.get(
     "/bidder/submissions/{bid_id}",
     dependencies=[Depends(require_role("bidder", "procurement_officer"))],
@@ -461,13 +476,13 @@ def get_bidder_submission_detail(
 ):
     """
     Bidder views specific submission receipt and document verification status.
-    Strictly verifies ownership: prevents accessing other bidder submissions (Issue 3).
+    Strictly verifies ownership: prevents accessing other bidder submissions.
     """
     sb = get_supabase()
     user_id = current_user.get("sub")
     is_officer = current_user.get("role") == "procurement_officer"
 
-    # Fetch bid with fallback
+    # Fetch bid with fallback to bidders table
     bid_data = None
     try:
         bid_res = sb.table("bids").select("*").eq("id", bid_id).execute()
@@ -484,52 +499,99 @@ def get_bidder_submission_detail(
             "id": b["id"],
             "tender_id": b.get("tender_id"),
             "bidder_id": b["id"],
+            "bidder_name": b.get("name"),
             "status": "verified",
             "submitted_at": b.get("created_at"),
             "officer_decision": None,
         }
 
-    bidder_id = bid_data.get("bidder_id")
+    bidder_id = bid_data.get("bidder_id") or bid_data.get("id")
 
-    # Ownership check: bidder can only view their own submission (Issue 3)
+    # Ownership check: bidder can only view their own submission if user_id is explicitly set
     if not is_officer:
         try:
-            bidder_res = sb.table("bidders").select("user_id").eq("id", bidder_id).execute()
-            b_owner = bidder_res.data[0].get("user_id") if bidder_res.data else None
-            if b_owner and b_owner != user_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Forbidden: You do not have permission to view this submission.",
-                )
+            bidder_res = sb.table("bidders").select("*").eq("id", bidder_id).execute()
+            if bidder_res.data:
+                b_owner = bidder_res.data[0].get("user_id")
+                if b_owner and b_owner != user_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Forbidden: You do not have permission to view this submission.",
+                    )
         except HTTPException:
             raise
         except Exception:
             pass
 
-    tender_id = bid_data["tender_id"]
-    tender_res = sb.table("tenders").select("title, organization, category, deadline, status").eq("id", tender_id).execute()
-    tender = tender_res.data[0] if tender_res.data else {}
+    tender_id = bid_data.get("tender_id")
+    tender = {}
+    if tender_id:
+        try:
+            tender_res = sb.table("tenders").select("*").eq("id", tender_id).execute()
+            if tender_res.data:
+                tender = _enrich_tender_dict(tender_res.data[0])
+        except Exception as e:
+            logger.warning(f"Failed to fetch tender {tender_id}: {e}")
 
-    # Documents query authoritative by bid_id (Issue 6)
+    # Documents query authoritative by bidder_id
     docs = []
-    try:
-        docs_res = sb.table("documents").select("id, document_type, filename, extraction_status, created_at").eq("bid_id", bid_id).execute()
-        docs = docs_res.data or []
-    except Exception:
-        docs = []
+    if bidder_id:
+        try:
+            docs_res = sb.table("documents").select("id, document_type, filename, extraction_status, created_at").eq("bidder_id", bidder_id).execute()
+            docs = docs_res.data or []
+        except Exception:
+            docs = []
 
-    if not docs and bidder_id:
-        docs_res = sb.table("documents").select("id, document_type, filename, extraction_status, created_at").eq("bidder_id", bidder_id).execute()
-        docs = docs_res.data or []
+    if not docs:
+        try:
+            docs_res = sb.table("documents").select("id, document_type, filename, extraction_status, created_at").eq("bid_id", bid_id).execute()
+            docs = docs_res.data or []
+        except Exception:
+            docs = []
+
+    # Normalize doc extraction status for frontend
+    for doc in docs:
+        if doc.get("extraction_status") in ("done", "extracted"):
+            doc["extraction_status"] = "done"
+
+    # Fetch findings for bidder to get realistic status and officer decision
+    findings_data = []
+    if bidder_id:
+        try:
+            f_res = sb.table("findings").select("status, officer_action").eq("bidder_id", bidder_id).execute()
+            findings_data = f_res.data or []
+        except Exception:
+            findings_data = []
+
+    raw_status = bid_data.get("status") or "submitted"
+    officer_decision = bid_data.get("officer_decision")
+    if findings_data:
+        has_issue = any(f.get("status") == "issue_detected" for f in findings_data)
+        if any(f.get("officer_action") in ("verified", "qualified") for f in findings_data):
+            officer_decision = "qualified"
+            raw_status = "verified"
+        elif any(f.get("officer_action") in ("rejected", "not_qualified") for f in findings_data):
+            officer_decision = "not_qualified"
+            raw_status = "issue_detected"
+        elif has_issue:
+            raw_status = "issue_detected"
+        else:
+            raw_status = "verified"
+
+    org = tender.get("organization") or "Ministry of Commerce & Industry"
+    if not tender.get("organization") and tender.get("uploaded_text"):
+        m = re.search(r"(?:Ministry|Department|Procuring Entity):\s*([^\n\r]+)", tender["uploaded_text"])
+        if m:
+            org = m.group(1).strip()
 
     return {
         "bid_id": bid_data["id"],
         "tender_id": tender_id,
-        "tender_title": tender.get("title"),
-        "organization": tender.get("organization"),
+        "tender_title": tender.get("title", "Tender Opportunity"),
+        "organization": org,
         "submitted_at": bid_data.get("submitted_at") or bid_data.get("created_at"),
-        "status": bid_data.get("status"),
-        "officer_decision": bid_data.get("officer_decision"),
+        "status": raw_status,
+        "officer_decision": officer_decision,
         "documents": docs,
     }
 
