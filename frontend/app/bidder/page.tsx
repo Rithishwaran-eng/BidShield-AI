@@ -9,7 +9,7 @@ import { listTenders, getBidderSubmissions } from "../lib/api";
 import { useUserRole } from "../lib/useUserRole";
 
 export default function BidderDashboardPage() {
-  const { name } = useUserRole();
+  const { name, isOfficer } = useUserRole();
   const [openTenders, setOpenTenders] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,13 +150,23 @@ export default function BidderDashboardPage() {
                     >
                       View Details
                     </Link>
-                    <Link
-                      href={`/bidder/tenders/${t.id}/apply`}
-                      className="btn btn-primary btn-sm"
-                      style={{ flex: 1, textAlign: "center", backgroundColor: "var(--color-saffron)", color: "#0A2E4D", fontWeight: 700 }}
-                    >
-                      Apply & Submit &rarr;
-                    </Link>
+                    {!isOfficer ? (
+                      <Link
+                        href={`/bidder/tenders/${t.id}/apply`}
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, textAlign: "center", backgroundColor: "var(--color-saffron)", color: "#0A2E4D", fontWeight: 700 }}
+                      >
+                        Apply & Submit &rarr;
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/officer/tenders/${t.id}`}
+                        className="btn btn-primary btn-sm"
+                        style={{ flex: 1, textAlign: "center", backgroundColor: "var(--color-navy-900)", color: "#FFFFFF", fontWeight: 700 }}
+                      >
+                        Officer Command &rarr;
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))}

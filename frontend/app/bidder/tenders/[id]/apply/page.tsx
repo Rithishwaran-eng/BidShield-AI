@@ -23,7 +23,7 @@ export default function BidApplyPage() {
   const params = useParams();
   const router = useRouter();
   const tenderId = params.id as string;
-  const { name, email: userEmail } = useUserRole();
+  const { name, email: userEmail, isOfficer } = useUserRole();
 
   const [tender, setTender] = useState<any>(null);
   const [rules, setRules] = useState<any[]>([]);
@@ -45,6 +45,11 @@ export default function BidApplyPage() {
   const [statusMessage, setStatusMessage] = useState("");
 
   useEffect(() => {
+    if (isOfficer) {
+      router.replace(`/officer/tenders/${tenderId}`);
+      return;
+    }
+
     Promise.all([
       getTender(tenderId),
       getRules(tenderId),
@@ -57,7 +62,29 @@ export default function BidApplyPage() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoadingTender(false));
-  }, [tenderId, userEmail, name]);
+  }, [tenderId, userEmail, name, isOfficer, router]);
+
+  if (isOfficer) {
+    return (
+      <div className="landing-page-wrapper">
+        <Header />
+        <main className="page-container" style={{ marginTop: "40px", textAlign: "center" }}>
+          <div className="card" style={{ padding: "40px", maxWidth: "600px", margin: "0 auto" }}>
+            <h2 style={{ fontSize: "18px", color: "var(--color-navy-900)", marginBottom: "10px" }}>
+              Procurement Officer Workspace
+            </h2>
+            <p style={{ fontSize: "14px", color: "var(--color-text-secondary)", marginBottom: "20px" }}>
+              Procurement Officers evaluate tenders and cannot submit bids. Redirecting to Officer Dossier...
+            </p>
+            <Link href={`/officer/tenders/${tenderId}`} className="btn btn-primary">
+              Go to Officer Workspace &rarr;
+            </Link>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const handleFileChange = (docType: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

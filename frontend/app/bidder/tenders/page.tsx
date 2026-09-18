@@ -7,8 +7,10 @@ import Footer from "@/app/components/Footer";
 import PageHeader from "@/app/components/PageHeader";
 import StatusBadge from "@/app/components/StatusBadge";
 import { listTenders } from "@/app/lib/api";
+import { useUserRole } from "@/app/lib/useUserRole";
 
 export default function BidderTendersListPage() {
+  const { isOfficer } = useUserRole();
   const [tenders, setTenders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -122,18 +124,33 @@ export default function BidderTendersListPage() {
                   >
                     View Requirements
                   </Link>
-                  <Link
-                    href={`/bidder/tenders/${t.id}/apply`}
-                    className="btn btn-primary"
-                    style={{
-                      fontSize: "13px",
-                      backgroundColor: "var(--color-saffron)",
-                      color: "#0A2E4D",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Apply / Submit Bid &rarr;
-                  </Link>
+                  {!isOfficer ? (
+                    <Link
+                      href={`/bidder/tenders/${t.id}/apply`}
+                      className="btn btn-primary"
+                      style={{
+                        fontSize: "13px",
+                        backgroundColor: "var(--color-saffron)",
+                        color: "#0A2E4D",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Apply / Submit Bid &rarr;
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/officer/tenders/${t.id}`}
+                      className="btn btn-primary"
+                      style={{
+                        fontSize: "13px",
+                        backgroundColor: "var(--color-navy-900)",
+                        color: "#FFFFFF",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Officer Dossier &rarr;
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}

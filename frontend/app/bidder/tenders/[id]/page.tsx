@@ -8,10 +8,12 @@ import Footer from "@/app/components/Footer";
 import PageHeader from "@/app/components/PageHeader";
 import StatusBadge from "@/app/components/StatusBadge";
 import { getTender, getRules } from "@/app/lib/api";
+import { useUserRole } from "@/app/lib/useUserRole";
 
 export default function BidderTenderDetailPage() {
   const params = useParams();
   const tenderId = params.id as string;
+  const { isOfficer } = useUserRole();
 
   const [tender, setTender] = useState<any>(null);
   const [rules, setRules] = useState<any[]>([]);
@@ -101,7 +103,7 @@ export default function BidderTenderDetailPage() {
             </div>
           )}
 
-          {isOpen && (
+          {isOpen && !isOfficer && (
             <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
               <Link
                 href={`/bidder/tenders/${tenderId}/apply`}
@@ -115,6 +117,23 @@ export default function BidderTenderDetailPage() {
                 }}
               >
                 Apply / Submit Bid &rarr;
+              </Link>
+            </div>
+          )}
+          {isOpen && isOfficer && (
+            <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
+              <Link
+                href={`/officer/tenders/${tenderId}`}
+                className="btn btn-primary"
+                style={{
+                  backgroundColor: "var(--color-navy-900)",
+                  color: "#FFFFFF",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  padding: "10px 24px",
+                }}
+              >
+                Officer Workspace &rarr;
               </Link>
             </div>
           )}
@@ -190,7 +209,7 @@ export default function BidderTenderDetailPage() {
           </div>
         </div>
 
-        {isOpen && (
+        {isOpen && !isOfficer && (
           <div style={{ textAlign: "center", padding: "24px", background: "#F8FAFC", border: "1px solid var(--color-border)", borderRadius: "6px" }}>
             <h3 style={{ fontSize: "16px", color: "var(--color-navy-900)", marginBottom: "8px" }}>
               Ready to submit your bid?
@@ -210,6 +229,30 @@ export default function BidderTenderDetailPage() {
               }}
             >
               Submit Bid Proposal &rarr;
+            </Link>
+          </div>
+        )}
+
+        {isOpen && isOfficer && (
+          <div style={{ textAlign: "center", padding: "24px", background: "#F8FAFC", border: "1px solid var(--color-border)", borderRadius: "6px" }}>
+            <h3 style={{ fontSize: "16px", color: "var(--color-navy-900)", marginBottom: "8px" }}>
+              Procurement Officer Command
+            </h3>
+            <p className="text-secondary text-sm mb-4">
+              Review submitted bids, evaluate compliance findings, and record qualification decisions.
+            </p>
+            <Link
+              href={`/officer/tenders/${tenderId}`}
+              className="btn btn-primary"
+              style={{
+                backgroundColor: "var(--color-navy-900)",
+                color: "#FFFFFF",
+                fontWeight: 700,
+                fontSize: "14px",
+                padding: "10px 28px",
+              }}
+            >
+              Open Officer Workspace &rarr;
             </Link>
           </div>
         )}

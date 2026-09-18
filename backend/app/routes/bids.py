@@ -51,6 +51,12 @@ async def submit_bid(
     Bidder applies for an OPEN tender by submitting company information and required documents.
     Bidder-only endpoint with Clerk ownership, deadline validation, and duplicate prevention.
     """
+    if current_user.get("role") in ("procurement_officer", "auditor", "administrator", "officer"):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Procurement officers are not permitted to submit bid applications.",
+        )
+
     sb = get_supabase()
     clerk_user_id = current_user.get("sub")
 
