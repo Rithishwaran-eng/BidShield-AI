@@ -68,7 +68,15 @@ export default function SignInPage() {
               </span>
             </div>
           </div>
-          <Link href="/" className="btn btn-secondary btn-sm" style={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.3)" }}>
+          <Link
+            href="/"
+            className="btn btn-secondary btn-sm"
+            style={{
+              backgroundColor: "transparent",
+              color: "#ffffff",
+              borderColor: "rgba(255,255,255,0.3)",
+            }}
+          >
             &larr; Back to Home
           </Link>
         </div>

@@ -122,7 +122,15 @@ export default function SignUpPage() {
               </span>
             </div>
           </div>
-          <Link href="/sign-in" className="btn btn-secondary btn-sm" style={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.3)" }}>
+          <Link
+            href="/sign-in"
+            className="btn btn-secondary btn-sm"
+            style={{
+              backgroundColor: "transparent",
+              color: "#ffffff",
+              borderColor: "rgba(255,255,255,0.3)",
+            }}
+          >
             Sign In &rarr;
           </Link>
         </div>

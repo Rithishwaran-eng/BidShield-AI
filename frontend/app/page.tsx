@@ -269,7 +269,15 @@ export default function LandingPage() {
             <Link href="/officer" style={{ color: "#ffffff", textDecoration: "none", fontSize: "13.5px", fontWeight: 500 }}>
               Officer Portal
             </Link>
-            <Link href="/sign-in" className="btn btn-secondary btn-sm" style={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.4)" }}>
+            <Link
+              href="/sign-in"
+              className="btn btn-secondary btn-sm"
+              style={{
+                backgroundColor: "transparent",
+                color: "#ffffff",
+                borderColor: "rgba(255,255,255,0.4)",
+              }}
+            >
               Sign In
             </Link>
             <Link

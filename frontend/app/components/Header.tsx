@@ -131,7 +131,15 @@ export default function Header() {
               </div>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <Link href="/sign-in" className="btn btn-secondary btn-sm" style={{ color: "#ffffff", borderColor: "rgba(255,255,255,0.3)" }}>
+                <Link
+                  href="/sign-in"
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    backgroundColor: "transparent",
+                    color: "#ffffff",
+                    borderColor: "rgba(255,255,255,0.3)",
+                  }}
+                >
                   Sign In
                 </Link>
                 <Link href="/sign-up" className="btn btn-primary btn-sm" style={{ backgroundColor: "var(--color-saffron)", color: "#0A2E4D", fontWeight: 700 }}>

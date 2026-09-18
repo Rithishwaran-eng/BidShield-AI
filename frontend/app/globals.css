@@ -613,6 +613,18 @@ textarea.form-input {
   gap: var(--space-4);
 }
 
+.header .btn-secondary {
+  background-color: transparent;
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.header .btn-secondary:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.8);
+  color: #FFFFFF;
+}
+
 .header-user {
   font-size: var(--text-xs);
   color: rgba(255, 255, 255, 0.85);
@@ -1187,6 +1199,7 @@ html[data-high-contrast="true"] {
 }
 .gov-lineage-flag {
   display: inline-flex;
+  flex-direction: column;
   width: 18px;
   height: 12px;
   border-radius: 1px;
