@@ -118,13 +118,28 @@ export default function OfficerFindingEvidencePage() {
 
   const isLocked = !!finding.officer_action;
 
-  // Group evidence by document
+  // Group evidence by document defensively (SEC-20)
+  const rawEvidence = finding.evidence;
+  let parsedEvidence: any[] = [];
+  if (Array.isArray(rawEvidence)) {
+    parsedEvidence = rawEvidence;
+  } else if (typeof rawEvidence === "string") {
+    try {
+      const parsed = JSON.parse(rawEvidence);
+      parsedEvidence = Array.isArray(parsed) ? parsed : [];
+    } catch {
+      parsedEvidence = [];
+    }
+  }
+
   const evidenceByDoc: Record<string, any[]> = {};
-  (finding.evidence || []).forEach((ev: any) => {
+  parsedEvidence.forEach((ev: any) => {
+    if (!ev || typeof ev !== "object") return;
     const key = ev.document_type || ev.document_id || "Cross-Document Source";
     if (!evidenceByDoc[key]) evidenceByDoc[key] = [];
     evidenceByDoc[key].push(ev);
   });
+
 
   return (
     <div className="landing-page-wrapper">

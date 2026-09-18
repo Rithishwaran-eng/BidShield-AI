@@ -7,11 +7,25 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
 ]);
 
+const isOfficerRoute = createRouteMatcher([
+  "/officer(.*)",
+]);
+
 const clerkHandler = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect();
+    
+    if (isOfficerRoute(req)) {
+      const authData = await auth();
+      const claims = authData.sessionClaims as any;
+      const role = claims?.metadata?.role || claims?.public_metadata?.role || claims?.role;
+      if (role && role !== "procurement_officer") {
+        return NextResponse.redirect(new URL("/bidder", req.url));
+      }
+    }
   }
 });
+
 
 export default async function middleware(req: NextRequest, event: NextFetchEvent) {
   try {

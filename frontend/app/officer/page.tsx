@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import StatusBadge from "@/app/components/StatusBadge";
@@ -9,11 +10,19 @@ import { listTenders, getGlobalAuditLog } from "@/app/lib/api";
 import { useUserRole } from "@/app/lib/useUserRole";
 
 export default function OfficerDashboardPage() {
-  const { name } = useUserRole();
+  const router = useRouter();
+  const { name, isOfficer, isLoaded } = useUserRole();
   const [tenders, setTenders] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isLoaded && !isOfficer) {
+      router.replace("/bidder");
+      return;
+    }
+  }, [isLoaded, isOfficer, router]);
 
   useEffect(() => {
     Promise.all([

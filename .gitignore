@@ -51,3 +51,6 @@ Thumbs.db
 
 # Temp / logs
 *.log
+
+# Sensitive test PDFs in root
+/*.pdf

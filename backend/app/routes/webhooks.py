@@ -83,10 +83,11 @@ async def clerk_webhook(request: Request):
         unsafe_metadata = data.get("unsafe_metadata") or {}
         requested_role = unsafe_metadata.get("requestedRole")
 
-        # Public users default to bidder unless explicitly authorized
-        if requested_role == "procurement_officer" and (
-            email.endswith(".gov.in") or email.endswith(".nic.in") or "officer" in email.lower() or "cpcl" in email.lower()
-        ):
+        # Public users default strictly to bidder.
+        # Only verified official government domains (.gov.in, .nic.in) may request procurement_officer role.
+        email_clean = email.strip().lower()
+        is_gov_email = email_clean.endswith(".gov.in") or email_clean.endswith(".nic.in")
+        if requested_role == "procurement_officer" and is_gov_email:
             validated_role = "procurement_officer"
         else:
             validated_role = "bidder"

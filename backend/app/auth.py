@@ -5,12 +5,29 @@ from fastapi import Depends, HTTPException, Request, status
 import jwt
 from clerk_backend_api import authenticate_request
 from clerk_backend_api.security.types import AuthenticateRequestOptions
-from app.config import CLERK_SECRET_KEY
+from app.config import CLERK_SECRET_KEY, ENVIRONMENT, ALLOW_DEV_AUTH_BYPASS
 
 logger = logging.getLogger(__name__)
 
 # Valid roles in BidShield AI (Strictly two human roles)
 VALID_ROLES = {"bidder", "procurement_officer"}
+
+
+async def get_optional_current_user(request: Request) -> Optional[dict]:
+    """
+    Returns verified user payload if valid Authorization header or __session cookie is provided,
+    otherwise returns None without raising an HTTPException.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    session_cookie = request.cookies.get("__session")
+
+    if not auth_header and not session_cookie:
+        return None
+
+    try:
+        return await get_current_user(request)
+    except HTTPException:
+        return None
 
 
 async def get_current_user(request: Request) -> dict:
@@ -24,8 +41,9 @@ async def get_current_user(request: Request) -> dict:
     session_cookie = request.cookies.get("__session")
 
     if not auth_header and not session_cookie:
-        # Check if running in development mode without Clerk keys
-        if not CLERK_SECRET_KEY or CLERK_SECRET_KEY.startswith("sk_test_placeholder"):
+        # Check if running in development mode with explicit dev bypass allowed
+        if ALLOW_DEV_AUTH_BYPASS and ENVIRONMENT == "development":
+            logger.warning("ALLOW_DEV_AUTH_BYPASS is active in development mode; substituting dev_officer.")
             return {
                 "sub": "dev_officer",
                 "role": "procurement_officer",
@@ -39,14 +57,20 @@ async def get_current_user(request: Request) -> dict:
         )
 
     if not CLERK_SECRET_KEY or CLERK_SECRET_KEY.startswith("sk_test_placeholder"):
-        # Development fallback
-        logger.warning("CLERK_SECRET_KEY not set in backend/.env; using development fallback.")
-        return {
-            "sub": "dev_officer",
-            "role": "procurement_officer",
-            "name": "Procurement Officer (Dev)",
-            "email": "officer@bidshield.gov.in",
-        }
+        if ALLOW_DEV_AUTH_BYPASS and ENVIRONMENT == "development":
+            logger.warning("CLERK_SECRET_KEY placeholder with dev bypass active; substituting dev_officer.")
+            return {
+                "sub": "dev_officer",
+                "role": "procurement_officer",
+                "name": "Procurement Officer (Dev)",
+                "email": "officer@bidshield.gov.in",
+            }
+        logger.error("CLERK_SECRET_KEY is not configured; failing closed.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed: Server authentication service not configured.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     try:
         request_state = authenticate_request(

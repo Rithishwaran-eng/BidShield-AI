@@ -1,15 +1,21 @@
 """Tender routes: create, import, list, get, PDF text extraction, extract rules, approve rules, publish tender."""
 
 import json
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from app.auth import require_role
+from starlette.concurrency import run_in_threadpool
+from app.auth import require_role, get_optional_current_user
 from app.models import TenderCreate, TenderResponse, RuleResponse, RuleUpdate, TenderStatusUpdate
 from app.supabase_client import get_supabase
 from app.services.gemini_extraction import extract_tender_rules
 from app.services.pdf_extraction import extract_text_from_pdf
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+PUBLIC_TENDER_STATUSES = ("open", "active", "bid_submission_closed", "under_evaluation", "decision_pending", "completed")
 
 
 @router.post(
@@ -32,6 +38,7 @@ def create_tender(body: TenderCreate):
     try:
         result = sb.table("tenders").insert(insert_data).execute()
     except Exception as e:
+        logger.warning(f"Standard tender insert fallback: {e}")
         # Fallback if optional schema columns not present
         result = sb.table("tenders").insert({
             "title": body.title,
@@ -53,7 +60,7 @@ MAX_TENDER_PDF_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
     dependencies=[Depends(require_role("procurement_officer"))],
 )
 async def upload_tender_pdf(file: UploadFile = File(...)):
-    """Extract raw text from an uploaded Tender PDF using pdfplumber."""
+    """Extract raw text from an uploaded Tender PDF using pdfplumber in threadpool."""
     filename = file.filename or "tender_document.pdf"
     if not filename.lower().endswith(".pdf"):
         raise HTTPException(
@@ -80,7 +87,8 @@ async def upload_tender_pdf(file: UploadFile = File(...)):
             detail=f"File '{filename}' is not a valid PDF document (missing %PDF magic header).",
         )
 
-    extraction = extract_text_from_pdf(file_bytes)
+    # SEC-07: Offload PDF text extraction to threadpool
+    extraction = await run_in_threadpool(extract_text_from_pdf, file_bytes)
     if not extraction["success"] or not extraction["text"]:
         raise HTTPException(
             status_code=400,
@@ -92,6 +100,7 @@ async def upload_tender_pdf(file: UploadFile = File(...)):
         "page_count": extraction.get("page_count", 1),
         "text": extraction["text"],
     }
+
 
 
 
@@ -157,25 +166,49 @@ MANDATORY CRITERIA:
 
 
 @router.get("", response_model=list[TenderResponse])
-def list_tenders(status: Optional[str] = None):
-    """List tenders. Bidders can filter by open tenders; officers can view all."""
+def list_tenders(
+    status: Optional[str] = None,
+    current_user: Optional[dict] = Depends(get_optional_current_user),
+):
+    """List tenders. Bidders and public can only view published tenders; officers can view all."""
     sb = get_supabase()
     query = sb.table("tenders").select("*")
-    if status:
+    is_officer = current_user and current_user.get("role") == "procurement_officer"
+
+    if not is_officer:
+        # Public & bidders are restricted strictly to published active/completed tenders (SEC-06)
+        query = query.in_("status", list(PUBLIC_TENDER_STATUSES))
+        if status and status in PUBLIC_TENDER_STATUSES:
+            query = query.eq("status", status)
+    elif status:
         query = query.eq("status", status)
+
     result = query.order("created_at", desc=True).execute()
     return result.data
 
 
 @router.get("/{tender_id}", response_model=TenderResponse)
-def get_tender(tender_id: str):
+def get_tender(
+    tender_id: str,
+    current_user: Optional[dict] = Depends(get_optional_current_user),
+):
     sb = get_supabase()
     result = sb.table("tenders").select("*").eq("id", tender_id).execute()
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Tender not found")
 
-    return result.data[0]
+    tender = result.data[0]
+    tender_status = tender.get("status", "draft")
+    is_officer = current_user and current_user.get("role") == "procurement_officer"
+
+    if tender_status not in PUBLIC_TENDER_STATUSES and not is_officer:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Pre-publication draft tenders are restricted to procurement officers.",
+        )
+
+    return tender
 
 
 VALID_STATUS_TRANSITIONS = {
@@ -258,8 +291,24 @@ def extract_rules(tender_id: str):
 
 
 @router.get("/{tender_id}/rules", response_model=list[RuleResponse])
-def get_rules(tender_id: str):
+def get_rules(
+    tender_id: str,
+    current_user: Optional[dict] = Depends(get_optional_current_user),
+):
     sb = get_supabase()
+    tender = sb.table("tenders").select("status").eq("id", tender_id).execute()
+    if not tender.data:
+        raise HTTPException(status_code=404, detail="Tender not found")
+
+    tender_status = tender.data[0].get("status", "draft")
+    is_officer = current_user and current_user.get("role") == "procurement_officer"
+
+    if tender_status not in PUBLIC_TENDER_STATUSES and not is_officer:
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: Eligibility rules for draft tenders are restricted to procurement officers.",
+        )
+
     result = sb.table("rules").select("*").eq("tender_id", tender_id).execute()
     return result.data
 

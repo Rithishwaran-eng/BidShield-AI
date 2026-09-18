@@ -10,9 +10,12 @@ Handles:
 
 import json
 import logging
+import os
+import re
 from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from starlette.concurrency import run_in_threadpool
 from app.auth import get_current_user, require_role
 from app.models import BidResponse, BidDecisionRequest
 from app.supabase_client import get_supabase
@@ -24,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-MAX_BID_DOCUMENT_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
+MAX_BID_DOCUMENT_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB per document
+MAX_TOTAL_SUBMISSION_BYTES = 75 * 1024 * 1024   # 75 MB total per submission
 
 
 @router.post(
@@ -107,43 +111,56 @@ async def submit_bid(
                 detail="A bid submission has already been recorded for this tender by your organization. Duplicate submissions are not permitted.",
             )
 
-    # 5. Enforce PDF-only uploads and file size limit (Issue 18)
+    # 5. Enforce PDF-only uploads, individual file size, and aggregate size limits (Issue 18 & SEC-13)
     if not files:
         raise HTTPException(status_code=400, detail="At least one compliance document PDF is required.")
 
     processed_files = []
+    total_bytes_read = 0
+
     for i, file in enumerate(files):
         doc_type = document_types[i] if i < len(document_types) else "DOCUMENT"
-        filename = file.filename or f"{doc_type.lower()}_doc.pdf"
-
-        if not filename.lower().endswith(".pdf"):
+        raw_filename = file.filename or f"{doc_type.lower()}_doc.pdf"
+        
+        # SEC-05: Path Traversal Prevention
+        clean_basename = os.path.basename(raw_filename)
+        sanitized_filename = re.sub(r"[^a-zA-Z0-9_\-\.]", "_", clean_basename)
+        if not sanitized_filename.lower().endswith(".pdf"):
             raise HTTPException(
                 status_code=400,
-                detail=f"Only PDF files (.pdf) are permitted. Received non-PDF file: '{filename}'",
+                detail=f"Only PDF files (.pdf) are permitted. Received non-PDF file: '{sanitized_filename}'",
             )
         if file.content_type and file.content_type not in ("application/pdf", "application/octet-stream"):
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid MIME type '{file.content_type}' for file '{filename}'. Must be 'application/pdf'.",
+                detail=f"Invalid MIME type '{file.content_type}' for file '{sanitized_filename}'. Must be 'application/pdf'.",
             )
 
         file_bytes = await file.read()
         if not file_bytes:
-            raise HTTPException(status_code=400, detail=f"Uploaded file '{filename}' is empty.")
+            raise HTTPException(status_code=400, detail=f"Uploaded file '{sanitized_filename}' is empty.")
         if len(file_bytes) > MAX_BID_DOCUMENT_SIZE_BYTES:
             raise HTTPException(
                 status_code=400,
-                detail=f"File '{filename}' exceeds maximum allowed size of 25 MB ({len(file_bytes)} bytes).",
+                detail=f"File '{sanitized_filename}' exceeds maximum allowed size of 25 MB ({len(file_bytes)} bytes).",
             )
+        
+        total_bytes_read += len(file_bytes)
+        if total_bytes_read > MAX_TOTAL_SUBMISSION_BYTES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Total upload size exceeds maximum allowed aggregate size of 75 MB.",
+            )
+
         if not file_bytes.startswith(b"%PDF"):
             raise HTTPException(
                 status_code=400,
-                detail=f"File '{filename}' is not a valid PDF document (missing %PDF magic header).",
+                detail=f"File '{sanitized_filename}' is not a valid PDF document (missing %PDF magic header).",
             )
 
         processed_files.append({
             "file": file,
-            "filename": filename,
+            "filename": sanitized_filename,
             "doc_type": doc_type,
             "file_bytes": file_bytes,
         })
@@ -165,7 +182,7 @@ async def submit_bid(
         raise HTTPException(status_code=500, detail="Database failure: Failed to register bidder entity.")
     bidder_id = bidder_res.data[0]["id"]
 
-    # 7. Create Bid Record (bid_id is authoritative) (Issue 6)
+    # 7. Create Bid Record with race-condition guard (Issue 6 & SEC-09)
     submitted_at = datetime.now(timezone.utc).isoformat()
     bid_insert = {
         "tender_id": tender_id,
@@ -174,7 +191,18 @@ async def submit_bid(
         "submitted_at": submitted_at,
     }
 
-    bid_res = sb.table("bids").insert(bid_insert).execute()
+    try:
+        bid_res = sb.table("bids").insert(bid_insert).execute()
+    except Exception as insert_err:
+        err_msg = str(insert_err).lower()
+        if "uq_bids_tender_bidder" in err_msg or "duplicate key" in err_msg or "unique" in err_msg:
+            raise HTTPException(
+                status_code=400,
+                detail="A bid submission has already been recorded for this tender by your organization.",
+            )
+        logger.error(f"Database error creating bid: {insert_err}")
+        raise HTTPException(status_code=500, detail="Database failure: Failed to create bid record.")
+
     if not bid_res.data:
         raise HTTPException(status_code=500, detail="Database failure: Failed to create bid record.")
     bid_id = bid_res.data[0]["id"]
@@ -208,11 +236,11 @@ async def submit_bid(
                     detail=f"Document storage upload failed for file '{filename}': {str(st_err)}",
                 )
 
-        # Extract text from PDF
-        pdf_res = extract_text_from_pdf(file_bytes)
+        # SEC-07: Extract text from PDF via threadpool to prevent event loop blocking
+        pdf_res = await run_in_threadpool(extract_text_from_pdf, file_bytes)
         pdf_text = pdf_res.get("text", "")
 
-        # Extract structured fields via Gemini AI
+        # Extract structured fields via Gemini AI in threadpool
         extracted_fields = {}
         extraction_status = "pending"
         confidence = 0.85
@@ -221,7 +249,7 @@ async def submit_bid(
         doc_reg_date = None
 
         if pdf_text:
-            gem_res = extract_document_fields(pdf_text, doc_type, filename)
+            gem_res = await run_in_threadpool(extract_document_fields, pdf_text, doc_type, filename)
             if gem_res.get("success"):
                 extracted_fields = gem_res.get("fields", {})
                 extraction_status = "done"
@@ -254,8 +282,8 @@ async def submit_bid(
             raise HTTPException(status_code=500, detail=f"Failed to record document '{filename}' in database.")
         uploaded_docs.append(doc_res.data[0])
 
-    # 9. Automated Verification Pipeline (Run Approved Rules Only) (Issue 16)
-    findings = run_compliance_check(rules, uploaded_docs, bidder_id, bid_id=bid_id)
+    # 9. Automated Verification Pipeline in threadpool (SEC-07, SEC-20)
+    findings = await run_in_threadpool(run_compliance_check, rules, uploaded_docs, bidder_id, bid_id=bid_id)
 
     findings_to_insert = []
     for f in findings:
@@ -264,7 +292,7 @@ async def submit_bid(
             "bidder_id": f["bidder_id"],
             "rule_id": f["rule_id"],
             "status": f["status"],
-            "evidence": json.dumps(f["evidence"]),
+            "evidence": f["evidence"], # Native JSON/dict for JSONB column to prevent double encoding (SEC-20)
             "explanation": f["explanation"],
         }
         findings_to_insert.append(item)
@@ -273,6 +301,7 @@ async def submit_bid(
         find_res = sb.table("findings").insert(findings_to_insert).execute()
         if not find_res.data:
             raise HTTPException(status_code=500, detail="Failed to record compliance findings in database.")
+
 
     # Determine overall status
     status_counts = {"verified": 0, "issue_detected": 0, "missing": 0, "pending": 0}
@@ -669,7 +698,7 @@ def reverify_bid(bid_id: str):
             "bidder_id": bidder_id,
             "rule_id": f["rule_id"],
             "status": f["status"],
-            "evidence": json.dumps(f["evidence"]),
+            "evidence": f["evidence"],
             "explanation": f["explanation"],
         })
 
